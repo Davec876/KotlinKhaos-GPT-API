@@ -1,4 +1,9 @@
-import { continueConversation, createNewConversation, giveFeedbackToConversation } from '../services/openAi';
+import {
+	continueConversation,
+	createNewConversation,
+	giveFeedbackToConversation,
+	giveFinalScoreFromConversation,
+} from '../services/openAi';
 import type { Env } from '../index';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 
@@ -82,8 +87,13 @@ export default class Conversation {
 	public async continue(env: Env) {
 		const numberOfUserResponses = this.getHistory().filter(({ role }) => role === 'user').length;
 
+		// Finished Quiz
+		if (this.getQuestionCount() > 3) {
+			return this.getLatestContent();
+		}
 		if (this.getQuestionCount() === 3) {
-			return null;
+			this.incrementQuestionCount(env);
+			return this.getFinalScore(env);
 		}
 
 		// Don't continue until the user has responded
@@ -106,6 +116,11 @@ export default class Conversation {
 
 		const feedbackMessage = await giveFeedbackToConversation(this, userAnswer, env);
 		return feedbackMessage;
+	}
+
+	public async getFinalScore(env: Env) {
+		const finalScore = await giveFinalScoreFromConversation(this, env);
+		return finalScore;
 	}
 
 	private toString() {

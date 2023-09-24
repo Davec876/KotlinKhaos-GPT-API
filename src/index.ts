@@ -30,9 +30,10 @@ router
 	.all('*', withParams)
 
 	// POST GPT create a new conversation utilizing a prompt
-	.POST('/android-problem/:userId', async (req, env: Env) => {
+	.POST('/android-problem/', async (req, env: Env) => {
 		const url = new URL(req.url);
-		const userId = req.params.userId;
+		// TODO: Hardcoding, eventually this will be inside of the fireBase JWT we are validating and decoding
+		const userId = '1';
 		const prompt = url.searchParams.get('prompt');
 
 		if (!prompt) {
@@ -49,18 +50,18 @@ router
 	})
 
 	// GET GPT conversation by Id
-	.get('/android-problem/:userId/:conversationId', async (req, env: Env) => {
+	.get('/android-problem/:conversationId', async (req, env: Env) => {
 		const conversation = await Conversation.getConversation(env, req.params.conversationId);
 
 		if (!conversation) {
 			return error(404, 'No conversation by that Id found');
 		}
 
-		return { answer: conversation.getLatestContent() };
+		return { feedback: conversation.getLatestContent() };
 	})
 
 	// POST GPT give feedback to a user's answer
-	.POST('/android-problem/:userId/:conversationId', async (req, env: Env) => {
+	.POST('/android-problem/:conversationId', async (req, env: Env) => {
 		const conversationId = req.params.conversationId;
 
 		// TODO: Add typeguard later
@@ -88,7 +89,7 @@ router
 	})
 
 	// POST GPT continue a conversation
-	.POST('/android-problem/:userId/:conversationId/continue', async (req, env: Env) => {
+	.POST('/android-problem/:conversationId/continue', async (req, env: Env) => {
 		const conversationId = req.params.conversationId;
 
 		const conversation = await Conversation.getConversation(env, conversationId);

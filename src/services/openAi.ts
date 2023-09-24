@@ -35,6 +35,16 @@ function giveFeedbackMessage(history: ChatCompletionMessage[], userAnswer: strin
 	return feedbackMessage;
 }
 
+function getFinalScoreMessage(): ChatCompletionMessage[] {
+	return [
+		{
+			content:
+				'Tally up the score based off all the users answers and feedback provided and reply with a final serious score out of 10 in the exact json format {"score": scoreAchieved/10}',
+			role: 'system',
+		},
+	];
+}
+
 export async function createNewConversation(env: Env, prompt: string): Promise<ChatCompletionMessage> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const completion = await openai.chat.completions.create({
@@ -74,5 +84,19 @@ export async function giveFeedbackToConversation(conversation: Conversation, use
 	const messages = [message[message.length - 1], completion.choices[0].message];
 
 	await conversation.appendMessagesToHistory(env, messages);
+	return conversation.getLatestContent();
+}
+
+export async function giveFinalScoreFromConversation(conversation: Conversation, env: Env): Promise<string | null> {
+	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
+	const message = conversation.getHistory().concat(getFinalScoreMessage());
+
+	const completion = await openai.chat.completions.create({
+		model: 'gpt-4',
+		messages: message,
+		max_tokens: 50,
+	});
+
+	await conversation.appendMessageToHistory(env, completion.choices[0].message);
 	return conversation.getLatestContent();
 }
