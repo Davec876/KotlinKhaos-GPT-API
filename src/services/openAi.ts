@@ -48,7 +48,7 @@ function getFinalScoreMessage(): ChatCompletionMessage[] {
 export async function createNewConversation(env: Env, prompt: string): Promise<ChatCompletionMessage> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const completion = await openai.chat.completions.create({
-		model: 'gpt-4',
+		model: 'gpt-3.5-turbo',
 		messages: getStartingMessage(prompt),
 		max_tokens: 50,
 	});
@@ -61,7 +61,7 @@ export async function continueConversation(conversation: PracticeConversation, e
 	const message = getStartingMessage(conversation.getPrompt()).concat(conversation.getHistory());
 
 	const completion = await openai.chat.completions.create({
-		model: 'gpt-4',
+		model: 'gpt-3.5-turbo',
 		messages: message,
 		max_tokens: 50,
 	});
@@ -75,7 +75,7 @@ export async function giveFeedbackToConversation(conversation: PracticeConversat
 	const message = giveFeedbackMessage(conversation.getHistory(), userAnswer);
 
 	const completion = await openai.chat.completions.create({
-		model: 'gpt-4',
+		model: 'gpt-3.5-turbo',
 		messages: message,
 		max_tokens: 100,
 	});
@@ -92,7 +92,7 @@ export async function giveFinalScoreFromConversation(conversation: PracticeConve
 	const message = conversation.getHistory().concat(getFinalScoreMessage());
 
 	const completion = await openai.chat.completions.create({
-		model: 'gpt-4',
+		model: 'gpt-3.5-turbo',
 		messages: message,
 		max_tokens: 50,
 	});

@@ -15,8 +15,12 @@ import {
 	json, // creates JSON responses
 	withParams, // middleware: puts params directly on the Request
 } from 'itty-router';
-import PracticeConversation from './classes/PracticeConversation';
-import User from './classes/User';
+import {
+	ContinueConversationRoute,
+	CreateConversationRoute,
+	GetConversationRoute,
+	GiveConversationFeedbackRoute,
+} from './routes/PracticeConversationRoutes';
 
 export interface Env {
 	OPENAI_API_TOKEN: string;
@@ -33,81 +37,16 @@ router
 	.all('*', withParams)
 
 	// POST GPT create a new conversation utilizing a prompt
-	.post('/android-problem/', async (req: IRequest, env: Env) => {
-		const url = new URL(req.url);
-		// TODO: Hardcoding, eventually this will be inside of the fireBase JWT we are validating and decoding
-		const user = await User.getUser(env, '1');
-		const prompt = url.searchParams.get('prompt');
-
-		if (!prompt) {
-			return error(400, 'No prompt specified!');
-		}
-
-		if (prompt.length > 20) {
-			return error(400, 'Prompt is too long');
-		}
-
-		const conversation = await PracticeConversation.newConversation(env, user, prompt);
-
-		return { answer: conversation.getLatestContent(), conversationId: conversation.getId() };
-	})
+	.post('/android-problem/', CreateConversationRoute)
 
 	// GET GPT conversation by Id
-	.get('/android-problem/:conversationId', async (req: IRequest, env: Env) => {
-		const conversation = await PracticeConversation.getConversation(env, req.params.conversationId);
-
-		if (!conversation) {
-			return error(404, 'No conversation by that Id found');
-		}
-
-		return { feedback: conversation.getLatestContent() };
-	})
+	.get('/android-problem/:practiceConversationId', GetConversationRoute)
 
 	// POST GPT give feedback to a user's answer
-	.post('/android-problem/:conversationId', async (req: IRequest, env: Env) => {
-		const conversationId = req.params.conversationId;
-
-		// TODO: Add typeguard later
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const body: any = await req.json().catch(() => error(400, 'Expect JSON body'));
-		const userAnswer: string = body.answer;
-
-		if (!userAnswer) {
-			return error(400, 'No answer specified!');
-		}
-
-		if (userAnswer.length > 300) {
-			return error(400, 'Please shorten your answer');
-		}
-
-		const conversation = await PracticeConversation.getConversation(env, conversationId);
-
-		if (!conversation) {
-			return error(404, 'No conversation by that Id found');
-		}
-
-		const feedback = await conversation.giveFeedback(env, userAnswer);
-
-		return { feedback };
-	})
+	.post('/android-problem/:practiceConversationId', GiveConversationFeedbackRoute)
 
 	// POST GPT continue a conversation
-	.post('/android-problem/:conversationId/continue', async (req: IRequest, env: Env) => {
-		const conversationId = req.params.conversationId;
-
-		const conversation = await PracticeConversation.getConversation(env, conversationId);
-
-		if (!conversation) {
-			return error(404, 'No conversation by that Id found');
-		}
-
-		const feedback = await conversation.continue(env);
-
-		return { feedback };
-	});
-
-router.original
-	.get('/', (req: IRequest) => Response.redirect(`${req.url}docs`, 301))
+	.post('/android-problem/:practiceConversationId/continue', ContinueConversationRoute)
 
 	// 404 for everything else
 	.all('*', () => error(404));
