@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 import type { Env } from '../index';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
-import Conversation from '../classes/Conversation';
+import type PracticeConversation from '../classes/PracticeConversation';
 
 function getStartingMessage(prompt: string): ChatCompletionMessage[] {
 	return [
@@ -56,7 +56,7 @@ export async function createNewConversation(env: Env, prompt: string): Promise<C
 	return completion.choices[0].message;
 }
 
-export async function continueConversation(conversation: Conversation, env: Env): Promise<string | null> {
+export async function continueConversation(conversation: PracticeConversation, env: Env): Promise<string | null> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = getStartingMessage(conversation.getPrompt()).concat(conversation.getHistory());
 
@@ -70,7 +70,7 @@ export async function continueConversation(conversation: Conversation, env: Env)
 	return conversation.getLatestContent();
 }
 
-export async function giveFeedbackToConversation(conversation: Conversation, userAnswer: string, env: Env): Promise<string | null> {
+export async function giveFeedbackToConversation(conversation: PracticeConversation, userAnswer: string, env: Env): Promise<string | null> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = giveFeedbackMessage(conversation.getHistory(), userAnswer);
 
@@ -87,7 +87,7 @@ export async function giveFeedbackToConversation(conversation: Conversation, use
 	return conversation.getLatestContent();
 }
 
-export async function giveFinalScoreFromConversation(conversation: Conversation, env: Env): Promise<string | null> {
+export async function giveFinalScoreFromConversation(conversation: PracticeConversation, env: Env): Promise<string | null> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = conversation.getHistory().concat(getFinalScoreMessage());
 
