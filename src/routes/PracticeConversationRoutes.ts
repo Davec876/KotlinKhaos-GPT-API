@@ -1,12 +1,22 @@
 import { OpenAPIRoute, Path, Query, Str } from '@cloudflare/itty-router-openapi';
 import { type IRequest, error } from 'itty-router';
 import type { Env } from '../index';
-import User from '../classes/User';
 import PracticeConversation from '../classes/PracticeConversation';
+
+const error404Schema = {
+	schema: {
+		status: 404,
+		error: 'No practiceConversation by that Id found',
+	},
+	description: 'No practice conversation by that Id found',
+};
+const routeTag = ['PracticeConversation'];
 
 // POST GPT create a new conversation utilizing a prompt
 export class CreateConversationRoute extends OpenAPIRoute {
 	static schema = {
+		tags: routeTag,
+		summary: 'Create a new conversation utilizing a prompt',
 		parameters: {
 			prompt: Query(Str),
 		},
@@ -30,8 +40,7 @@ export class CreateConversationRoute extends OpenAPIRoute {
 
 	async handle(req: IRequest, env: Env) {
 		const url = new URL(req.url);
-		// TODO: Hardcoding, eventually this will be inside of the fireBase JWT we are validating and decoding
-		const user = await User.getUser(env, '1');
+		const user = env.REQ_USER;
 		const prompt = url.searchParams.get('prompt');
 
 		if (!prompt) {
@@ -51,6 +60,8 @@ export class CreateConversationRoute extends OpenAPIRoute {
 // GET GPT conversation by Id
 export class GetConversationRoute extends OpenAPIRoute {
 	static schema = {
+		tags: routeTag,
+		summary: 'Get practiceConversation by Id',
 		parameters: {
 			practiceConversationId: Path(Str),
 		},
@@ -61,13 +72,7 @@ export class GetConversationRoute extends OpenAPIRoute {
 				},
 				description: 'Successfull response',
 			},
-			'404': {
-				schema: {
-					status: 404,
-					error: 'No practice conversation by that Id found',
-				},
-				description: 'No practice conversation by that Id found',
-			},
+			'404': error404Schema,
 		},
 	};
 
@@ -76,16 +81,18 @@ export class GetConversationRoute extends OpenAPIRoute {
 		const conversation = await PracticeConversation.getConversation(env, conversationId);
 
 		if (!conversation) {
-			return error(404, 'No practice conversation by that Id found');
+			return error(404, 'No practiceConversation by that Id found');
 		}
 
 		return { message: conversation.getLatestContent() };
 	}
 }
 
-// POST GPT give feedback to a user's answer
+// POST GPT give feedback to a user's response
 export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 	static schema = {
+		tags: routeTag,
+		summary: "Give feedback to a user's response",
 		parameters: {
 			practiceConversationId: Path(Str),
 		},
@@ -99,13 +106,7 @@ export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 				},
 				description: 'Successfull response',
 			},
-			'404': {
-				schema: {
-					status: 404,
-					error: 'No practice conversation by that Id found',
-				},
-				description: 'No practice conversation by that Id found',
-			},
+			'404': error404Schema,
 		},
 	};
 
@@ -127,7 +128,7 @@ export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 		const conversation = await PracticeConversation.getConversation(env, conversationId);
 
 		if (!conversation) {
-			return error(404, 'No practice conversation by that Id found');
+			return error(404, 'No practiceConversation by that Id found');
 		}
 
 		const message = await conversation.giveFeedback(env, userAnswer);
@@ -139,6 +140,8 @@ export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 // POST GPT continue a conversation
 export class ContinueConversationRoute extends OpenAPIRoute {
 	static schema = {
+		tags: routeTag,
+		summary: 'Continue a conversation',
 		parameters: {
 			practiceConversationId: Path(Str),
 		},
@@ -149,13 +152,7 @@ export class ContinueConversationRoute extends OpenAPIRoute {
 				},
 				description: 'Successfull response',
 			},
-			'404': {
-				schema: {
-					status: 404,
-					error: 'No practice conversation by that Id found',
-				},
-				description: 'No practice conversation by that Id found',
-			},
+			'404': error404Schema,
 		},
 	};
 
@@ -165,7 +162,7 @@ export class ContinueConversationRoute extends OpenAPIRoute {
 		const conversation = await PracticeConversation.getConversation(env, conversationId);
 
 		if (!conversation) {
-			return error(404, 'No conversation by that Id found');
+			return error(404, 'No practiceConversation by that Id found');
 		}
 
 		const message = await conversation.continue(env);

@@ -66,6 +66,7 @@ export default class QuizConversation {
 		return new QuizConversation(quizConversationId, quiz.getId(), user.getId(), quiz.getQuestionLimit(), quiz.getQuestions(), userAnswers);
 	}
 
+	// Load quizConversation from kv
 	public static async getConversation(env: Env, quizConversationId: string) {
 		const res = await env.QUIZ_CONVERSATIONS.get(quizConversationId);
 

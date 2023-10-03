@@ -78,7 +78,7 @@ export default class Quiz {
 	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
 		const quizId = crypto.randomUUID();
 
-		const usersClass = Class.getClass(env, author.getClassId())
+		const usersClass = Class.getClass(env, author.getClassId());
 		const userAttempts = [];
 		const started = false;
 		const finished = false;
@@ -112,6 +112,7 @@ export default class Quiz {
 		// );
 	}
 
+	// Load quiz from kv
 	public static async getQuiz(env: Env, quizId: string) {
 		const res = await env.QUIZS.get(quizId);
 

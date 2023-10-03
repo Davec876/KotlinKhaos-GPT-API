@@ -44,6 +44,7 @@ export default class Class {
 		return this.quizIds;
 	}
 
+	// Load class from firebase db
 	public static async getClass(env: Env, classId: string) {
 		// TODO: Fetch class from firebase db through service module
 		// const res = await env.CONVERSATIONS.get(conversationId);

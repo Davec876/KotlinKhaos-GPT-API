@@ -90,6 +90,7 @@ export default class PracticeQuizConversation {
 		return new PracticeQuizConversation(practiceConversationId, user.getId(), prompt, questionLimit, currentQuestionNumber, history);
 	}
 
+	// Load practiceConversation from kv
 	public static async getConversation(env: Env, practiceConversationId: string) {
 		const res = await env.PRACTICE_CONVERSATIONS.get(practiceConversationId);
 

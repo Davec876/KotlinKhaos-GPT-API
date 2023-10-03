@@ -21,20 +21,48 @@ import {
 	GetConversationRoute,
 	GiveConversationFeedbackRoute,
 } from './routes/PracticeConversationRoutes';
-
+import { authRoute } from './routes/AuthRoute';
+import type User from './classes/User';
 export interface Env {
+	DEBUG: string;
 	OPENAI_API_TOKEN: string;
+	FIREBASE_API_KEY: string;
+	REQ_USER: User;
 	QUIZS: KVNamespace;
 	QUIZ_CONVERSATIONS: KVNamespace;
 	PRACTICE_CONVERSATIONS: KVNamespace;
 }
 
 // create a new Router
-const router = OpenAPIRouter();
+const router = OpenAPIRouter({
+	schema: {
+		info: {
+			title: 'Kotlin Khaos GPT',
+			version: '1.0.0',
+		},
+		security: [
+			{
+				BearerAuth: [],
+			},
+		],
+	},
+});
+
+// OpenAPI require JWT on all routes
+router.registry.registerComponent('securitySchemes', 'BearerAuth', {
+	type: 'http',
+	scheme: 'bearer',
+});
+
+// Redirect root request to the /docs page
+router.original.get('/', (req: IRequest) => Response.redirect(`${req.url}docs`, 301));
 
 router
 	// add some middleware upstream on all routes
 	.all('*', withParams)
+
+	// auth middleware
+	.all('*', authRoute)
 
 	// POST GPT create a new conversation utilizing a prompt
 	.post('/android-problem/', CreateConversationRoute)
@@ -53,9 +81,9 @@ router
 
 // Example: Cloudflare Worker module syntax
 export default {
-	fetch: (req: IRequest, env: Env) =>
+	fetch: (req: IRequest, env: Env, ctx: ExecutionContext) =>
 		router
-			.handle(req, env)
+			.handle(req, env, ctx)
 			.then(json) // send as JSON
 			.catch(error), // catch errors
 };

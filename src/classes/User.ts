@@ -1,4 +1,5 @@
 import type { Env } from '../index';
+import type { FirebaseUserToken } from '../services/firebase';
 
 // Class for interacting with firebase user
 export default class User {
@@ -22,6 +23,21 @@ export default class User {
 		return this.name;
 	}
 
+	public static async getUserFromToken(env: Env, userToken: FirebaseUserToken) {
+		// TODO: Fetch user from firebase db through service module
+		// const res = await env.CONVERSATIONS.get(conversationId);
+		// if (!res) {
+		// 	return null;
+		// }
+		// const parsedRes = JSON.parse(res);
+		// return new User(parsedRes.id, parsedRes.classId, parsedRes.name);
+		// TODO: Hardcode fake values for now
+		const name = userToken.name ?? '';
+
+		return new User(userToken.user_id, '1', name);
+	}
+
+	// Load user from firebase db
 	public static async getUser(env: Env, userId: string) {
 		// TODO: Fetch user from firebase db through service module
 		// const res = await env.CONVERSATIONS.get(conversationId);
@@ -31,6 +47,7 @@ export default class User {
 		// const parsedRes = JSON.parse(res);
 		// return new User(parsedRes.id, parsedRes.classId, parsedRes.name);
 		// TODO: Hardcode fake values for now
+
 		return new User(userId, '1', 'Test User');
 	}
 }
