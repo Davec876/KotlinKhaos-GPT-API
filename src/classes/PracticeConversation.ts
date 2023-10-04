@@ -22,6 +22,7 @@ export default class PracticeQuizConversation {
 	private readonly savedUsersCourseInfo: SavedUsersCourseInfo;
 	private readonly prompt: string;
 	private readonly questionLimit: number;
+	private state: 'awaitingUserResponse' | 'assistantResponded' | 'completed';
 	private currentQuestionNumber: number;
 	private history: ChatCompletionMessage[];
 
@@ -31,6 +32,7 @@ export default class PracticeQuizConversation {
 		savedUsersCourseInfo: SavedUsersCourseInfo,
 		prompt: PracticeQuizConversation['prompt'],
 		questionLimit: PracticeQuizConversation['questionLimit'],
+		state: PracticeQuizConversation['state'],
 		currentQuestionNumber: PracticeQuizConversation['currentQuestionNumber'],
 		history: ChatCompletionMessage[]
 	) {
@@ -39,6 +41,7 @@ export default class PracticeQuizConversation {
 		this.savedUsersCourseInfo = savedUsersCourseInfo;
 		this.prompt = prompt;
 		this.questionLimit = questionLimit;
+		this.state = state;
 		this.currentQuestionNumber = currentQuestionNumber;
 		this.history = history;
 	}
@@ -58,12 +61,15 @@ export default class PracticeQuizConversation {
 	private getQuestionLimit() {
 		return this.questionLimit;
 	}
+	private getState() {
+		return this.state;
+	}
 	private getCurrentQuestionNumber() {
 		return this.currentQuestionNumber;
 	}
 	private async incrementCurrentQuestionNumber(env: Env) {
 		this.currentQuestionNumber = this.currentQuestionNumber + 1;
-		await env.PRACTICE_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
+		await this.saveStateToKv(env);
 	}
 	public getHistory() {
 		return this.history;
@@ -71,22 +77,31 @@ export default class PracticeQuizConversation {
 	public getLatestContent() {
 		return this.history[this.history.length - 1].content;
 	}
-	public async appendMessagesToHistory(env: Env, message: ChatCompletionMessage[]) {
+	public async appendMessagesToHistory(env: Env, state: PracticeQuizConversation['state'], message: ChatCompletionMessage[]) {
+		this.setState(state);
 		this.history = this.history.concat(message);
-		await env.PRACTICE_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
+		await this.saveStateToKv(env);
 	}
-	public async appendMessageToHistory(env: Env, message: ChatCompletionMessage) {
+	public async appendMessageToHistory(env: Env, state: PracticeQuizConversation['state'], message: ChatCompletionMessage) {
+		this.setState(state);
 		this.history.push(message);
-		await env.PRACTICE_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
+		await this.saveStateToKv(env);
+	}
+	private setState(state: PracticeQuizConversation['state']) {
+		this.state = state;
+	}
+	private isFinished() {
+		return this.getState() === 'completed';
 	}
 
 	public static async newConversation(env: Env, user: User, prompt: string) {
 		const practiceConversationId = crypto.randomUUID();
 		const questionLimit = 3;
+		const state = 'awaitingUserResponse';
 		const currentQuestionNumber = 1;
 		const usersCourse = await Course.getCourse(env, user.getCourseId());
 		const usersCourseInfo: SavedUsersCourseInfo = {
-			id: user.getId(),
+			id: usersCourse.getId(),
 			educationLevel: usersCourse.getEducationLevel(),
 			description: usersCourse.getDescription(),
 		};
@@ -98,8 +113,9 @@ export default class PracticeQuizConversation {
 			JSON.stringify({
 				userId: user.getId(),
 				savedUsersCourseInfo: usersCourseInfo,
-				prompt: prompt,
+				prompt,
 				questionLimit,
+				state,
 				currentQuestionNumber,
 				history,
 			}),
@@ -114,6 +130,7 @@ export default class PracticeQuizConversation {
 			usersCourseInfo,
 			prompt,
 			questionLimit,
+			state,
 			currentQuestionNumber,
 			history
 		);
@@ -134,26 +151,23 @@ export default class PracticeQuizConversation {
 			parsedRes.savedUsersCourseInfo,
 			parsedRes.prompt,
 			parsedRes.questionLimit,
+			parsedRes.state,
 			parsedRes.currentQuestionNumber,
 			parsedRes.history
 		);
 	}
 
 	public async continue(env: Env) {
-		const numberOfUserResponses = this.getHistory().filter(({ role }) => role === 'user').length;
-
-		// Finished Quiz
-		if (this.getCurrentQuestionNumber() > this.getQuestionLimit()) {
+		// Finished conversation
+		if (this.isFinished()) {
 			return this.parseFinalScore(this.getLatestContent());
 		}
 		// Generate final score once last question is complete
 		if (this.getCurrentQuestionNumber() === this.getQuestionLimit()) {
-			this.incrementCurrentQuestionNumber(env);
 			return this.getFinalScore(env);
 		}
-
-		// Don't continue until the user has responded
-		if (this.getCurrentQuestionNumber() > numberOfUserResponses) {
+		// Don't continue if awaiting user response
+		if (this.getState() === 'awaitingUserResponse') {
 			return this.getLatestContent();
 		}
 
@@ -163,13 +177,8 @@ export default class PracticeQuizConversation {
 	}
 
 	public async giveFeedback(env: Env, userAnswer: string) {
-		const numberOfAssistantResponses = this.getHistory().filter(({ role }) => role === 'assistant').length;
-
-		// Don't generate feedback if quiz is finished, or if feedback has already been given for this question
-		if (
-			this.getCurrentQuestionNumber() > this.getQuestionLimit() ||
-			this.getCurrentQuestionNumber() === numberOfAssistantResponses - this.getCurrentQuestionNumber()
-		) {
+		// Don't generate feedback if quiz is finished or if assistant has already responded
+		if (this.isFinished() || this.getState() === 'assistantResponded') {
 			return this.getLatestContent();
 		}
 
@@ -196,8 +205,11 @@ export default class PracticeQuizConversation {
 
 	public async getFinalScore(env: Env) {
 		const finalScore = await giveFinalScoreFromConversation(this, env);
-
 		return this.parseFinalScore(finalScore);
+	}
+
+	private async saveStateToKv(env: Env) {
+		await env.PRACTICE_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
 	}
 
 	private toString() {
@@ -206,6 +218,7 @@ export default class PracticeQuizConversation {
 			savedUsersCourseInfo: this.savedUsersCourseInfo,
 			prompt: this.getPrompt(),
 			questionLimit: this.getQuestionLimit(),
+			state: this.getState(),
 			currentQuestionNumber: this.getCurrentQuestionNumber(),
 			history: this.getHistory(),
 		});

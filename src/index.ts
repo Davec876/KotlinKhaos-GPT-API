@@ -90,7 +90,7 @@ export default {
 	fetch: (req: IRequest, env: Env, ctx: ExecutionContext) =>
 		router
 			.handle(req, env, ctx)
-			.then(corsify)
 			.then(json) // send as JSON
+			.then(corsify)
 			.catch(error), // catch errors
 };

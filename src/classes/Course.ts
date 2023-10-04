@@ -25,7 +25,7 @@ export default class Course {
 		this.quizIds = quizIds;
 	}
 
-	private getId() {
+	public getId() {
 		return this.id;
 	}
 	public getName() {

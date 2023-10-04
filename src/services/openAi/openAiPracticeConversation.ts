@@ -76,7 +76,8 @@ export async function continueConversation(conversation: PracticeConversation, e
 		max_tokens: 50,
 	});
 
-	await conversation.appendMessageToHistory(env, completion.choices[0].message);
+	const newState = 'awaitingUserResponse';
+	await conversation.appendMessageToHistory(env, newState, completion.choices[0].message);
 	return conversation.getLatestContent();
 }
 
@@ -93,7 +94,8 @@ export async function giveFeedbackToConversation(conversation: PracticeConversat
 	// Combine user message and completion message from GPT
 	const messages = [message[message.length - 1], completion.choices[0].message];
 
-	await conversation.appendMessagesToHistory(env, messages);
+	const newState = 'assistantResponded';
+	await conversation.appendMessagesToHistory(env, newState, messages);
 	return conversation.getLatestContent();
 }
 
@@ -107,6 +109,7 @@ export async function giveFinalScoreFromConversation(conversation: PracticeConve
 		max_tokens: 50,
 	});
 
-	await conversation.appendMessageToHistory(env, completion.choices[0].message);
+	const newState = 'completed';
+	await conversation.appendMessageToHistory(env, newState, completion.choices[0].message);
 	return conversation.getLatestContent();
 }
