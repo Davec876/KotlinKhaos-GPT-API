@@ -3,7 +3,7 @@ import {
 	createNewConversation,
 	giveFeedbackToConversation,
 	giveFinalScoreFromConversation,
-} from '../services/openAi/openAiPracticeConversation';
+} from '../services/openAi/openAiPracticeQuizConversation';
 import Course from './Course';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
@@ -15,7 +15,7 @@ interface SavedUsersCourseInfo {
 	description: string;
 }
 
-export default class PracticeQuizConversation {
+export default class PracticeQuiz {
 	private readonly id: string;
 	private readonly userId: string;
 	// The user's course info at time of practice conversation creation
@@ -27,13 +27,13 @@ export default class PracticeQuizConversation {
 	private history: ChatCompletionMessage[];
 
 	private constructor(
-		id: PracticeQuizConversation['id'],
-		userId: PracticeQuizConversation['userId'],
+		id: PracticeQuiz['id'],
+		userId: PracticeQuiz['userId'],
 		savedUsersCourseInfo: SavedUsersCourseInfo,
-		prompt: PracticeQuizConversation['prompt'],
-		questionLimit: PracticeQuizConversation['questionLimit'],
-		state: PracticeQuizConversation['state'],
-		currentQuestionNumber: PracticeQuizConversation['currentQuestionNumber'],
+		prompt: PracticeQuiz['prompt'],
+		questionLimit: PracticeQuiz['questionLimit'],
+		state: PracticeQuiz['state'],
+		currentQuestionNumber: PracticeQuiz['currentQuestionNumber'],
 		history: ChatCompletionMessage[]
 	) {
 		this.id = id;
@@ -77,25 +77,25 @@ export default class PracticeQuizConversation {
 	public getLatestContent() {
 		return this.history[this.history.length - 1].content;
 	}
-	public async appendMessagesToHistory(env: Env, state: PracticeQuizConversation['state'], message: ChatCompletionMessage[]) {
+	public async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage[]) {
 		this.setState(state);
 		this.history = this.history.concat(message);
 		await this.saveStateToKv(env);
 	}
-	public async appendMessageToHistory(env: Env, state: PracticeQuizConversation['state'], message: ChatCompletionMessage) {
+	public async appendMessageToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage) {
 		this.setState(state);
 		this.history.push(message);
 		await this.saveStateToKv(env);
 	}
-	private setState(state: PracticeQuizConversation['state']) {
+	private setState(state: PracticeQuiz['state']) {
 		this.state = state;
 	}
 	private isFinished() {
 		return this.getState() === 'completed';
 	}
 
-	public static async newConversation(env: Env, user: User, prompt: string) {
-		const practiceConversationId = crypto.randomUUID();
+	public static async newQuiz(env: Env, user: User, prompt: string) {
+		const practiceQuizId = crypto.randomUUID();
 		const questionLimit = 3;
 		const state = 'awaitingUserResponse';
 		const currentQuestionNumber = 1;
@@ -105,11 +105,11 @@ export default class PracticeQuizConversation {
 			educationLevel: usersCourse.getEducationLevel(),
 			description: usersCourse.getDescription(),
 		};
-		const completionMessage = await createNewConversation(env, usersCourseInfo, prompt);
-		const history = [completionMessage];
+		const question = await createNewConversation(env, usersCourseInfo, prompt);
+		const history = [question];
 
-		await env.PRACTICE_CONVERSATIONS.put(
-			practiceConversationId,
+		await env.PRACTICE_QUIZ_CONVERSATIONS.put(
+			practiceQuizId,
 			JSON.stringify({
 				userId: user.getId(),
 				savedUsersCourseInfo: usersCourseInfo,
@@ -124,29 +124,20 @@ export default class PracticeQuizConversation {
 			}
 		);
 
-		return new PracticeQuizConversation(
-			practiceConversationId,
-			user.getId(),
-			usersCourseInfo,
-			prompt,
-			questionLimit,
-			state,
-			currentQuestionNumber,
-			history
-		);
+		return new PracticeQuiz(practiceQuizId, user.getId(), usersCourseInfo, prompt, questionLimit, state, currentQuestionNumber, history);
 	}
 
-	// Load practiceConversation from kv
-	public static async getConversation(env: Env, practiceConversationId: string) {
-		const res = await env.PRACTICE_CONVERSATIONS.get(practiceConversationId);
+	// Load practiceQuiz from kv
+	public static async getQuiz(env: Env, practiceQuizId: string) {
+		const res = await env.PRACTICE_QUIZ_CONVERSATIONS.get(practiceQuizId);
 
 		if (!res) {
 			return null;
 		}
 
 		const parsedRes = JSON.parse(res);
-		return new PracticeQuizConversation(
-			practiceConversationId,
+		return new PracticeQuiz(
+			practiceQuizId,
 			parsedRes.userId,
 			parsedRes.savedUsersCourseInfo,
 			parsedRes.prompt,
@@ -209,7 +200,7 @@ export default class PracticeQuizConversation {
 	}
 
 	private async saveStateToKv(env: Env) {
-		await env.PRACTICE_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
+		await env.PRACTICE_QUIZ_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
 	}
 
 	private toString() {

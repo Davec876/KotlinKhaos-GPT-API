@@ -10,5 +10,5 @@ routes = [{ pattern = "kotlin-khaos-api.maximoguk.com", custom_domain = true }]
 kv_namespaces = [
     { binding = "QUIZS", id = "8f63af8fdff54a22a4a602fcd18d42c3", preview_id = "8f63af8fdff54a22a4a602fcd18d42c3"},
     { binding = "QUIZ_CONVERSATIONS", id = "f6f7404a89fd4e4d90a64ce84b2e1074", preview_id = "f6f7404a89fd4e4d90a64ce84b2e1074" },
-    { binding = "PRACTICE_CONVERSATIONS", id = "a5fadb9b22964f9eb1f71fc9e35608d7", preview_id = "a5fadb9b22964f9eb1f71fc9e35608d7" }
+    { binding = "PRACTICE_QUIZ_CONVERSATIONS", id = "7b04352cf94844c4b9b2a24c8c483f37", preview_id = "7b04352cf94844c4b9b2a24c8c483f37" }
 ]

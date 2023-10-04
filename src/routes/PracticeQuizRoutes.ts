@@ -1,22 +1,22 @@
 import { OpenAPIRoute, Path, Query, Str } from '@cloudflare/itty-router-openapi';
 import { type IRequest, error } from 'itty-router';
 import type { Env } from '../index';
-import PracticeConversation from '../classes/PracticeConversation';
+import PracticeQuiz from '../classes/PracticeQuiz';
 
 const error404Schema = {
 	schema: {
 		status: 404,
-		error: 'No practiceConversation by that Id found',
+		error: 'No practiceQuiz by that Id found',
 	},
-	description: 'No practice conversation by that Id found',
+	description: 'No practice quiz by that Id found',
 };
-const routeTag = ['PracticeConversation'];
+const routeTag = ['PracticeQuiz'];
 
-// POST GPT create a new conversation utilizing a prompt
-export class CreateConversationRoute extends OpenAPIRoute {
+// POST GPT create a new practice quiz utilizing a prompt
+export class CreatePracticeQuizRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Create a new conversation utilizing a prompt',
+		summary: 'Create a new practice quiz utilizing a prompt',
 		parameters: {
 			prompt: Query(Str),
 		},
@@ -24,7 +24,7 @@ export class CreateConversationRoute extends OpenAPIRoute {
 			'200': {
 				schema: {
 					problem: Str,
-					practiceConversationId: Str,
+					practiceQuizId: Str,
 				},
 				description: 'Successfull response',
 			},
@@ -51,19 +51,19 @@ export class CreateConversationRoute extends OpenAPIRoute {
 			return error(400, 'Prompt is too long');
 		}
 
-		const conversation = await PracticeConversation.newConversation(env, user, prompt);
+		const practiceQuiz = await PracticeQuiz.newQuiz(env, user, prompt);
 
-		return { problem: conversation.getLatestContent(), practiceConversationId: conversation.getId() };
+		return { problem: practiceQuiz.getLatestContent(), practiceQuizId: practiceQuiz.getId() };
 	}
 }
 
-// GET GPT conversation by Id
-export class GetConversationRoute extends OpenAPIRoute {
+// GET GPT practiceQuiz by Id
+export class GetPracticeQuizRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get practiceConversation by Id',
+		summary: 'Get practice quiz by Id',
 		parameters: {
-			practiceConversationId: Path(Str),
+			practiceQuizId: Path(Str),
 		},
 		responses: {
 			'200': {
@@ -77,24 +77,24 @@ export class GetConversationRoute extends OpenAPIRoute {
 	};
 
 	async handle(req: IRequest, env: Env) {
-		const conversationId = req.params.practiceConversationId;
-		const conversation = await PracticeConversation.getConversation(env, conversationId);
+		const practiceQuizId = req.params.practiceQuizId;
+		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
 
-		if (!conversation) {
-			return error(404, 'No practiceConversation by that Id found');
+		if (!practiceQuiz) {
+			return error(404, 'No practiceQuiz by that Id found');
 		}
 
-		return { message: conversation.getLatestContent() };
+		return { message: practiceQuiz.getLatestContent() };
 	}
 }
 
 // POST GPT give feedback to a user's response
-export class GiveConversationFeedbackRoute extends OpenAPIRoute {
+export class GivePracticeQuizFeedbackRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
 		summary: "Give feedback to a user's response",
 		parameters: {
-			practiceConversationId: Path(Str),
+			practiceQuizId: Path(Str),
 		},
 		requestBody: {
 			answer: 'Your answer to the problem that was generated for you',
@@ -112,7 +112,7 @@ export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 	async handle(req: IRequest, env: Env, ctx: ExecutionContext, context: any) {
-		const conversationId = req.params.practiceConversationId;
+		const practiceQuizId = req.params.practiceQuizId;
 
 		// TODO: Add typeguard later
 		const userAnswer: string = context.body.answer;
@@ -125,25 +125,25 @@ export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 			return error(400, 'Please shorten your answer');
 		}
 
-		const conversation = await PracticeConversation.getConversation(env, conversationId);
+		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
 
-		if (!conversation) {
-			return error(404, 'No practiceConversation by that Id found');
+		if (!practiceQuiz) {
+			return error(404, 'No practiceQuiz by that Id found');
 		}
 
-		const message = await conversation.giveFeedback(env, userAnswer);
+		const message = await practiceQuiz.giveFeedback(env, userAnswer);
 
 		return { message };
 	}
 }
 
-// POST GPT continue a conversation
-export class ContinueConversationRoute extends OpenAPIRoute {
+// POST GPT get the next quiz question
+export class ContinuePracticeQuizRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Continue a conversation',
+		summary: 'Get the next quiz question',
 		parameters: {
-			practiceConversationId: Path(Str),
+			practiceQuizId: Path(Str),
 		},
 		responses: {
 			'200': {
@@ -157,15 +157,15 @@ export class ContinueConversationRoute extends OpenAPIRoute {
 	};
 
 	async handle(req: IRequest, env: Env) {
-		const conversationId = req.params.practiceConversationId;
+		const practiceQuizId = req.params.practiceQuizId;
 
-		const conversation = await PracticeConversation.getConversation(env, conversationId);
+		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
 
-		if (!conversation) {
-			return error(404, 'No practiceConversation by that Id found');
+		if (!practiceQuiz) {
+			return error(404, 'No practiceQuiz by that Id found');
 		}
 
-		const message = await conversation.continue(env);
+		const message = await practiceQuiz.continue(env);
 
 		return { message };
 	}

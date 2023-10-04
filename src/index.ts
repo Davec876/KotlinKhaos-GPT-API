@@ -17,11 +17,11 @@ import {
 	createCors, // middleware: puts params directly on the Request
 } from 'itty-router';
 import {
-	ContinueConversationRoute,
-	CreateConversationRoute,
-	GetConversationRoute,
-	GiveConversationFeedbackRoute,
-} from './routes/PracticeConversationRoutes';
+	ContinuePracticeQuizRoute,
+	CreatePracticeQuizRoute,
+	GetPracticeQuizRoute,
+	GivePracticeQuizFeedbackRoute,
+} from './routes/PracticeQuizRoutes';
 import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
@@ -32,7 +32,7 @@ export interface Env {
 	REQ_USER: User;
 	QUIZS: KVNamespace;
 	QUIZ_CONVERSATIONS: KVNamespace;
-	PRACTICE_CONVERSATIONS: KVNamespace;
+	PRACTICE_QUIZ_CONVERSATIONS: KVNamespace;
 }
 
 const { preflight, corsify } = createCors();
@@ -70,17 +70,17 @@ router
 	// auth middleware
 	.all('*', authRoute)
 
-	// POST GPT create a new conversation utilizing a prompt
-	.post('/practice-problem/', CreateConversationRoute)
+	// POST GPT create a new practice quiz utilizing a prompt
+	.post('/practice-quiz/', CreatePracticeQuizRoute)
 
-	// GET GPT conversation by Id
-	.get('/practice-problem/:practiceConversationId', GetConversationRoute)
+	// GET GPT practiceQuiz by Id
+	.get('/practice-quiz/:practiceQuizId', GetPracticeQuizRoute)
 
-	// POST GPT give feedback to a user's answer
-	.post('/practice-problem/:practiceConversationId', GiveConversationFeedbackRoute)
+	// POST GPT give feedback to a user's response
+	.post('/practice-quiz/:practiceQuizId', GivePracticeQuizFeedbackRoute)
 
-	// POST GPT continue a conversation
-	.post('/practice-problem/:practiceConversationId/continue', ContinueConversationRoute)
+	// POST GPT get the next quiz question
+	.post('/practice-quiz/:practiceQuizId/continue', ContinuePracticeQuizRoute)
 
 	// 404 for everything else
 	.all('*', () => error(404));
