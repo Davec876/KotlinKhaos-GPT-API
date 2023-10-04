@@ -1,5 +1,4 @@
 import { type IRequest, error } from 'itty-router';
-import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Env } from '../index';
 import { getDebugToken, verifyToken } from '../services/firebase';
 import User from '../classes/User';
@@ -13,20 +12,27 @@ function getBearer(req: IRequest): null | string {
 }
 
 export async function authRoute(req: IRequest, env: Env, ctx: ExecutionContext) {
-	const bearer = getBearer(req);
+	try {
+		const bearer = getBearer(req);
 
-	if (bearer) {
-		const userToken = await verifyToken(bearer, ctx);
-		env.REQ_USER = await User.getUserFromToken(env, userToken);
-		return;
+		if (bearer) {
+			const userToken = await verifyToken(bearer, ctx);
+			env.REQ_USER = await User.getUserFromToken(env, userToken);
+			return;
+		}
+
+		// env.DEBUG is expected to be a string
+		if (env.DEBUG === 'true') {
+			// Generate debug token if no token supplied and in debug mode
+			const debugToken = await getDebugToken(env);
+			return { debugIdToken: debugToken };
+		}
+
+		return error(401, 'Authorization required');
+	} catch (err) {
+		if (err instanceof Error && err.message === 'Invalid Token or Protected Header formatting') {
+			return error(401, 'Invalid Authorization token');
+		}
+		throw err;
 	}
-
-	// env.DEBUG is expected to be a string
-	if (env.DEBUG === 'true') {
-		// Generate debug token if no token supplied and in debug mode
-		const debugToken = await getDebugToken(env);
-		return { debugIdToken: debugToken };
-	}
-
-	return error(403, 'Authorization required');
 }

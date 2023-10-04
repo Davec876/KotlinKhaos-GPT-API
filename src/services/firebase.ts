@@ -4,7 +4,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getIdToken, getAccessToken, verifyIdToken } from 'web-auth-library/google';
 import firebaseSecret from '../../firebase-secret.json';
-import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Env } from '../index';
 
 // Sourced from https://github.com/kriasoft/web-auth-library/blob/main/google/idToken.ts#L249

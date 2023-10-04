@@ -13,7 +13,8 @@ import {
 	error,
 	type IRequest, // creates error responses
 	json, // creates JSON responses
-	withParams, // middleware: puts params directly on the Request
+	withParams,
+	createCors, // middleware: puts params directly on the Request
 } from 'itty-router';
 import {
 	ContinueConversationRoute,
@@ -25,6 +26,7 @@ import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
 	DEBUG: string;
+	GPT_4: string;
 	OPENAI_API_TOKEN: string;
 	FIREBASE_API_KEY: string;
 	REQ_USER: User;
@@ -32,6 +34,8 @@ export interface Env {
 	QUIZ_CONVERSATIONS: KVNamespace;
 	PRACTICE_CONVERSATIONS: KVNamespace;
 }
+
+const { preflight, corsify } = createCors();
 
 // create a new Router
 const router = OpenAPIRouter({
@@ -58,6 +62,8 @@ router.registry.registerComponent('securitySchemes', 'BearerAuth', {
 router.original.get('/', (req: IRequest) => Response.redirect(`${req.url}docs`, 301));
 
 router
+	.all('*', preflight)
+
 	// add some middleware upstream on all routes
 	.all('*', withParams)
 
@@ -65,16 +71,16 @@ router
 	.all('*', authRoute)
 
 	// POST GPT create a new conversation utilizing a prompt
-	.post('/android-problem/', CreateConversationRoute)
+	.post('/practice-problem/', CreateConversationRoute)
 
 	// GET GPT conversation by Id
-	.get('/android-problem/:practiceConversationId', GetConversationRoute)
+	.get('/practice-problem/:practiceConversationId', GetConversationRoute)
 
 	// POST GPT give feedback to a user's answer
-	.post('/android-problem/:practiceConversationId', GiveConversationFeedbackRoute)
+	.post('/practice-problem/:practiceConversationId', GiveConversationFeedbackRoute)
 
 	// POST GPT continue a conversation
-	.post('/android-problem/:practiceConversationId/continue', ContinueConversationRoute)
+	.post('/practice-problem/:practiceConversationId/continue', ContinueConversationRoute)
 
 	// 404 for everything else
 	.all('*', () => error(404));
@@ -84,6 +90,7 @@ export default {
 	fetch: (req: IRequest, env: Env, ctx: ExecutionContext) =>
 		router
 			.handle(req, env, ctx)
+			.then(corsify)
 			.then(json) // send as JSON
 			.catch(error), // catch errors
 };

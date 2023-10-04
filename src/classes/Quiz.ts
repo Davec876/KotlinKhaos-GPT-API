@@ -1,7 +1,7 @@
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
-import Class from './Class';
+import Course from './Course';
 
 interface UserAttempt {
 	readonly userId: string;
@@ -17,7 +17,7 @@ interface QuizOptions {
 export default class Quiz {
 	private readonly id: string;
 	private readonly authorId: string;
-	private readonly classId: string;
+	private readonly courseId: string;
 	private name: string;
 	private questionLimit: number;
 	private userAttempts: UserAttempt[];
@@ -28,7 +28,7 @@ export default class Quiz {
 	private constructor(
 		id: Quiz['id'],
 		authorId: Quiz['authorId'],
-		classId: Quiz['classId'],
+		courseId: Quiz['courseId'],
 		name: Quiz['name'],
 		questionLimit: Quiz['questionLimit'],
 		userAttempts: Quiz['userAttempts'],
@@ -38,7 +38,7 @@ export default class Quiz {
 	) {
 		this.id = id;
 		this.authorId = authorId;
-		this.classId = classId;
+		this.courseId = courseId;
 		this.name = name;
 		this.questionLimit = questionLimit;
 		this.userAttempts = userAttempts;
@@ -53,8 +53,8 @@ export default class Quiz {
 	private getAuthorId() {
 		return this.authorId;
 	}
-	private getClassId() {
-		return this.classId;
+	private getCourseId() {
+		return this.courseId;
 	}
 	private getName() {
 		return this.name;
@@ -78,7 +78,7 @@ export default class Quiz {
 	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
 		const quizId = crypto.randomUUID();
 
-		const usersClass = Class.getClass(env, author.getClassId());
+		const usersCourse = Course.getCourse(env, author.getCourseId());
 		const userAttempts = [];
 		const started = false;
 		const finished = false;
@@ -89,7 +89,7 @@ export default class Quiz {
 		// 	quizId,
 		// 	JSON.stringify({
 		// 		authorId: author.getId(),
-		// 		classId: author.getClassId(),
+		// 		courseId: author.getCourseid(),
 		// 		name: quizOptions.name,
 		// 		questionLimit: quizOptions.questionLimit,
 		// 		userAttempts: userAttempts,
@@ -102,7 +102,7 @@ export default class Quiz {
 		// return new Quiz(
 		// 	quizId,
 		// 	author.getId(),
-		// 	author.getClassId(),
+		// 	author.getCourseId(),
 		// 	quizOptions.name,
 		// 	quizOptions.questionLimit,
 		// 	userAttempts,
@@ -125,7 +125,7 @@ export default class Quiz {
 		return new Quiz(
 			quizId,
 			parsedRes.id,
-			parsedRes.classId,
+			parsedRes.courseId,
 			parsedRes.name,
 			parsedRes.questionLimit,
 			parsedRes.userAttempts,
@@ -138,7 +138,7 @@ export default class Quiz {
 	private toString() {
 		return JSON.stringify({
 			authorId: this.getAuthorId(),
-			classId: this.getClassId(),
+			courseId: this.getCourseId(),
 			name: this.getName(),
 			questionLimit: this.getQuestionLimit(),
 			userAttempts: this.getUserAttempts(),

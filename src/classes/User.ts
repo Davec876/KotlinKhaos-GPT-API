@@ -1,23 +1,23 @@
 import type { Env } from '../index';
 import type { FirebaseUserToken } from '../services/firebase';
 
-// Class for interacting with firebase user
+// Course for interacting with firebase user
 export default class User {
 	private readonly id: string;
-	private readonly classId: string;
+	private readonly courseId: string;
 	private readonly name: string;
 
-	private constructor(id: User['id'], classId: User['classId'], name: User['name']) {
+	private constructor(id: User['id'], courseId: User['courseId'], name: User['name']) {
 		this.id = id;
-		this.classId = classId;
+		this.courseId = courseId;
 		this.name = name;
 	}
 
 	public getId() {
 		return this.id;
 	}
-	public getClassId() {
-		return this.classId;
+	public getCourseId() {
+		return this.courseId;
 	}
 	private getName() {
 		return this.name;
@@ -30,11 +30,16 @@ export default class User {
 		// 	return null;
 		// }
 		// const parsedRes = JSON.parse(res);
-		// return new User(parsedRes.id, parsedRes.classId, parsedRes.name);
+		// return new User(parsedRes.id, parsedRes.courseId, parsedRes.name);
 		// TODO: Hardcode fake values for now
-		const name = userToken.name ?? '';
+		const fakeUserRes = {
+			courseId: '1',
+			name: '',
+		};
 
-		return new User(userToken.user_id, '1', name);
+		const name = userToken.name ?? fakeUserRes.name;
+
+		return new User(userToken.user_id, fakeUserRes.courseId, name);
 	}
 
 	// Load user from firebase db
@@ -45,9 +50,13 @@ export default class User {
 		// 	return null;
 		// }
 		// const parsedRes = JSON.parse(res);
-		// return new User(parsedRes.id, parsedRes.classId, parsedRes.name);
+		// return new User(parsedRes.id, parsedRes.courseId, parsedRes.name);
 		// TODO: Hardcode fake values for now
+		const fakeUserRes = {
+			courseId: '1',
+			name: 'Test User',
+		};
 
-		return new User(userId, '1', 'Test User');
+		return new User(userId, fakeUserRes.courseId, fakeUserRes.name);
 	}
 }

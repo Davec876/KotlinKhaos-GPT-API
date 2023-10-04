@@ -110,8 +110,8 @@ export class GiveConversationFeedbackRoute extends OpenAPIRoute {
 		},
 	};
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	async handle(req: IRequest, env: Env, context: any) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+	async handle(req: IRequest, env: Env, ctx: ExecutionContext, context: any) {
 		const conversationId = req.params.practiceConversationId;
 
 		// TODO: Add typeguard later
