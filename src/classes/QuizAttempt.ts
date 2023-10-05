@@ -139,9 +139,7 @@ export default class QuizAttempt {
 		};
 	}
 
-	public async submitAttempt(env: Env, userAnswers: string[]) {
-		this.setUserAnswers(userAnswers);
-
+	private validateSubmitAttempt(userAnswers: string[]) {
 		if (this.getNumberOfAnswers() > this.getNumberOfQuestions()) {
 			throw new KotlinKhaosAPIError("You've got too many answers in your response", 400);
 		}
@@ -152,6 +150,16 @@ export default class QuizAttempt {
 		if (this.getSubmitted()) {
 			throw new KotlinKhaosAPIError('quizAttempt has already been submitted', 400);
 		}
+		userAnswers.forEach((userAnswer) => {
+			if (userAnswer.length > 300) {
+				throw new KotlinKhaosAPIError('Please shorten your answers', 400);
+			}
+		});
+	}
+
+	public async submitAttempt(env: Env, userAnswers: string[]) {
+		this.setUserAnswers(userAnswers);
+		this.validateSubmitAttempt(userAnswers);
 
 		const scoreMessage = await giveFinalScoreFromQuizAttempt(this, env);
 		if (!scoreMessage.content) {

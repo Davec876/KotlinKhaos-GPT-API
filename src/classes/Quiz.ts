@@ -121,9 +121,7 @@ export default class Quiz {
 		this.questions.push(question);
 	}
 
-	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
-		const quizId = crypto.randomUUID();
-
+	private static validateNewQuizOptions(quizOptions: QuizOptions) {
 		if (quizOptions.prompt.length > 20) {
 			throw new KotlinKhaosAPIError('Prompt is too long', 400);
 		}
@@ -131,7 +129,10 @@ export default class Quiz {
 		if (quizOptions.questionLimit > 5) {
 			throw new KotlinKhaosAPIError("Quiz's may only have a max of 5 questions", 400);
 		}
-
+	}
+	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
+		this.validateNewQuizOptions(quizOptions);
+		const quizId = crypto.randomUUID();
 		const authorsCourse = await Course.getCourse(env, author.getCourseId());
 		const authorsCourseInfo = authorsCourse.getCourseInfoSnapshotForQuiz();
 		const startedAttemptsUserIds: string[] = [];
@@ -226,7 +227,7 @@ export default class Quiz {
 		return nextQuestion.content;
 	}
 
-	public async startQuiz(env: Env) {
+	private validateQuizStartConditions() {
 		if (this.getNumberOfQuestions() > this.getQuestionLimit()) {
 			throw new KotlinKhaosAPIError("You've exceeded the question limit for the quiz", 400);
 		}
@@ -237,7 +238,10 @@ export default class Quiz {
 		if (this.getStarted()) {
 			throw new KotlinKhaosAPIError('Quiz has already started', 400);
 		}
+	}
 
+	public async startQuiz(env: Env) {
+		this.validateQuizStartConditions();
 		this.started = true;
 		await this.saveStateToKv(env);
 		return true;

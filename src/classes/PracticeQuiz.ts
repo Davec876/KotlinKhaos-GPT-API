@@ -176,7 +176,7 @@ export default class PracticeQuiz {
 		return this.getLatestContent();
 	}
 
-	public async giveFeedback(env: Env, userAnswer: string) {
+	private validateFeedbackConditions(userAnswer: string) {
 		if (!userAnswer) {
 			throw new KotlinKhaosAPIError('No answer specified!', 400);
 		}
@@ -192,6 +192,10 @@ export default class PracticeQuiz {
 		if (this.isFinished()) {
 			throw new KotlinKhaosAPIError('Cannot give feedback, quiz has finished', 400);
 		}
+	}
+
+	public async giveFeedback(env: Env, userAnswer: string) {
+		this.validateFeedbackConditions(userAnswer);
 
 		const { newState, messages } = await giveFeedbackToConversation(this, userAnswer, env);
 		this.appendMessagesToHistory(env, newState, messages);
