@@ -1,5 +1,5 @@
 import { OpenAI } from 'openai';
-import { getModel, parseFinalScore } from './openAiShared';
+import { getModel } from './openAiShared';
 import type { Env } from '../../index';
 import type QuizAttempt from '../../classes/QuizAttempt';
 import type { ChatCompletionMessage } from 'openai/resources/chat';
@@ -32,7 +32,7 @@ function getFinalScoreMessage(history: ChatCompletionMessage[]): ChatCompletionM
 	return finalScoreMessage;
 }
 
-export async function giveFinalScoreFromQuizAttempt(quizAttempt: QuizAttempt, env: Env): Promise<string | null> {
+export async function giveFinalScoreFromQuizAttempt(quizAttempt: QuizAttempt, env: Env): Promise<ChatCompletionMessage> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const history = mergedQuestionsAndUserAnswers(quizAttempt);
 	const message = getFinalScoreMessage(history);
@@ -43,11 +43,5 @@ export async function giveFinalScoreFromQuizAttempt(quizAttempt: QuizAttempt, en
 		max_tokens: 50,
 	});
 	const finalScore = completion.choices[0].message;
-	const parsedScore = parseFinalScore(finalScore.content);
-
-	if (!parsedScore) {
-		return null;
-	}
-
-	return parsedScore.score;
+	return finalScore;
 }

@@ -1,5 +1,5 @@
 import { Bool, OpenAPIRoute, Path, Str } from '@cloudflare/itty-router-openapi';
-import { type IRequest, error } from 'itty-router';
+import { type IRequest } from 'itty-router';
 import type { Env } from '../index';
 import QuizAttempt from '../classes/QuizAttempt';
 
@@ -35,11 +35,6 @@ export class CreateQuizAttemptRoute extends OpenAPIRoute {
 		const user = env.REQ_USER;
 
 		const quizAttempt = await QuizAttempt.newQuizAttempt(env, user, quizId);
-
-		if (!quizAttempt) {
-			return error(500, 'Something went wrong generating the quizAttempt');
-		}
-
 		return { quizAttemptId: quizAttempt.getId() };
 	}
 }
@@ -69,9 +64,6 @@ export class GetQuizAttemptRoute extends OpenAPIRoute {
 	async handle(req: IRequest, env: Env) {
 		const quizAttemptId = req.params.quizAttemptId;
 		const quizAttempt = await QuizAttempt.getQuizAttempt(env, quizAttemptId);
-		if (!quizAttempt) {
-			return error(404, 'No quizAttempt by that Id found');
-		}
 		return { quizAttempt: quizAttempt.getQuizAttemptViewForStudent() };
 	}
 }
@@ -84,6 +76,9 @@ export class SubmitQuizAttemptRoute extends OpenAPIRoute {
 		parameters: {
 			quizAttemptId: Path(Str),
 		},
+		requestBody: {
+			answers: ['Your answer here', 'Your answer here #2', 'Your answer here #3'],
+		},
 		responses: {
 			'200': {
 				schema: {
@@ -95,19 +90,14 @@ export class SubmitQuizAttemptRoute extends OpenAPIRoute {
 		},
 	};
 
-	async handle(req: IRequest, env: Env) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+	async handle(req: IRequest, env: Env, ctx: ExecutionContext, context: any) {
 		const quizAttemptId = req.params.quizAttemptId;
+		// TODO: Add typeguard later
+		const userAnswers: string[] = context.body.answers;
+
 		const quizAttempt = await QuizAttempt.getQuizAttempt(env, quizAttemptId);
-		if (!quizAttempt) {
-			return error(404, 'No quizAttempt by that Id found');
-		}
-
-		// TODO: Set userAnswers
-		const score = await quizAttempt.submitAttempt(env);
-		if (!score) {
-			return error(500, 'Error retrieving score');
-		}
-
+		const score = await quizAttempt.submitAttempt(env, userAnswers);
 		return { score: score.score };
 	}
 }

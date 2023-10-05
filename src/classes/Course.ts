@@ -1,4 +1,6 @@
 import type { Env } from '../index';
+import type Quiz from './Quiz';
+import type User from './User';
 
 export interface CourseInfoSnapshotForQuiz {
 	id: string;
@@ -12,8 +14,8 @@ export default class Course {
 	private readonly name: string;
 	private readonly educationLevel: string;
 	private readonly description: string;
-	private readonly userIds: string[];
-	private readonly quizIds: string[];
+	private readonly userIds: User['id'][];
+	private readonly quizIds: Quiz['id'][];
 
 	private constructor(
 		id: Course['id'],

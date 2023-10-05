@@ -73,31 +73,31 @@ router
 	.all('*', authRoute)
 
 	// POST GPT create a new practice quiz utilizing a prompt
-	.post('/practice-quiz/', CreatePracticeQuizRoute)
+	.post('/practice-quizs/', CreatePracticeQuizRoute)
 
 	// GET GPT practiceQuiz by Id
-	.get('/practice-quiz/:practiceQuizId', GetPracticeQuizRoute)
+	.get('/practice-quizs/:practiceQuizId', GetPracticeQuizRoute)
 
 	// POST GPT give feedback to a user's response
-	.post('/practice-quiz/:practiceQuizId', GivePracticeQuizFeedbackRoute)
+	.post('/practice-quizs/:practiceQuizId', GivePracticeQuizFeedbackRoute)
 
 	// POST GPT get the next practice quiz question
-	.post('/practice-quiz/:practiceQuizId/continue', ContinuePracticeQuizRoute)
+	.post('/practice-quizs/:practiceQuizId/continue', ContinuePracticeQuizRoute)
 
 	// POST GPT create a new quiz
-	.post('/quiz/', CreateQuizRoute)
+	.post('/quizs/', CreateQuizRoute)
 
 	// GET GPT quiz by Id
-	.get('/quiz/:quizId', GetQuizRoute)
+	.get('/quizs/:quizId', GetQuizRoute)
 
 	// POST GPT get the next quiz question
-	.post('/quiz/:quizId/next-question', NextQuizQuestionRoute)
+	.post('/quizs/:quizId/next-question', NextQuizQuestionRoute)
 
 	// POST GPT start the quiz
-	.post('/quiz/:quizId/start', StartQuizRoute)
+	.post('/quizs/:quizId/start', StartQuizRoute)
 
 	// POST GPT create a new quiz attempt
-	.post('/quiz/:quizId/attempt', CreateQuizAttemptRoute)
+	.post('/quizs/:quizId/attempt', CreateQuizAttemptRoute)
 
 	// GET GPT quizAttempt by Id
 	.get('/quiz-attempts/:quizAttemptId', GetQuizAttemptRoute)

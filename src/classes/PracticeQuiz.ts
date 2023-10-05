@@ -8,11 +8,12 @@ import Course, { type CourseInfoSnapshotForQuiz } from './Course';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
+import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 import { parseFinalScore } from '../services/openAi/openAiShared';
 
 export default class PracticeQuiz {
 	private readonly id: string;
-	private readonly userId: string;
+	private readonly userId: User['id'];
 	// The user's course info at time of practice conversation creation
 	private readonly savedUsersCourseInfo: CourseInfoSnapshotForQuiz;
 	private readonly prompt: string;
@@ -62,9 +63,8 @@ export default class PracticeQuiz {
 	private getCurrentQuestionNumber() {
 		return this.currentQuestionNumber;
 	}
-	private async incrementCurrentQuestionNumber(env: Env) {
+	private async incrementCurrentQuestionNumber() {
 		this.currentQuestionNumber = this.currentQuestionNumber + 1;
-		await this.saveStateToKv(env);
 	}
 	public getHistory() {
 		return this.history;
@@ -72,15 +72,13 @@ export default class PracticeQuiz {
 	public getLatestContent() {
 		return this.history[this.history.length - 1].content;
 	}
-	public async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage[]) {
+	private async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage[]) {
 		this.setState(state);
 		this.history = this.history.concat(message);
-		await this.saveStateToKv(env);
 	}
-	public async appendMessageToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage) {
+	private async appendMessageToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage) {
 		this.setState(state);
 		this.history.push(message);
-		await this.saveStateToKv(env);
 	}
 	private setState(state: PracticeQuiz['state']) {
 		this.state = state;
@@ -90,6 +88,10 @@ export default class PracticeQuiz {
 	}
 
 	public static async newQuiz(env: Env, user: User, prompt: string) {
+		if (prompt.length > 20) {
+			throw new KotlinKhaosAPIError('Prompt is too long', 400);
+		}
+
 		const practiceQuizId = crypto.randomUUID();
 		const questionLimit = 3;
 		const state = 'awaitingUserResponse';
@@ -113,36 +115,50 @@ export default class PracticeQuiz {
 			{
 				expirationTtl: 86400,
 			}
-		);
+		).catch((err) => {
+			console.error(err);
+			throw new KotlinKhaosAPIError('Error creating new practiceQuiz', 500);
+		});
 
 		return new PracticeQuiz(practiceQuizId, user.getId(), usersCourseInfo, prompt, questionLimit, state, currentQuestionNumber, history);
 	}
 
 	// Load practiceQuiz from kv
 	public static async getQuiz(env: Env, practiceQuizId: string) {
-		const res = await env.PRACTICE_QUIZ_CONVERSATIONS.get(practiceQuizId);
+		try {
+			const res = await env.PRACTICE_QUIZ_CONVERSATIONS.get(practiceQuizId).catch((err) => {
+				console.error(err);
+				throw new KotlinKhaosAPIError('Error loading practiceQuiz state', 500);
+			});
 
-		if (!res) {
-			return null;
+			if (!res) {
+				throw new KotlinKhaosAPIError('No practiceQuiz found by that Id', 404);
+			}
+
+			const parsedRes = JSON.parse(res);
+			return new PracticeQuiz(
+				practiceQuizId,
+				parsedRes.userId,
+				parsedRes.savedUsersCourseInfo,
+				parsedRes.prompt,
+				parsedRes.questionLimit,
+				parsedRes.state,
+				parsedRes.currentQuestionNumber,
+				parsedRes.history
+			);
+		} catch (err) {
+			if (err instanceof SyntaxError) {
+				console.error(err);
+				throw new KotlinKhaosAPIError('Error parsing quiz from kv', 500);
+			}
+			throw err;
 		}
-
-		const parsedRes = JSON.parse(res);
-		return new PracticeQuiz(
-			practiceQuizId,
-			parsedRes.userId,
-			parsedRes.savedUsersCourseInfo,
-			parsedRes.prompt,
-			parsedRes.questionLimit,
-			parsedRes.state,
-			parsedRes.currentQuestionNumber,
-			parsedRes.history
-		);
 	}
 
 	public async continue(env: Env) {
 		// Finished conversation
 		if (this.isFinished()) {
-			return parseFinalScore(this.getLatestContent());
+			throw new KotlinKhaosAPIError('Cannot continue, quiz has finished', 400);
 		}
 		// Generate final score once last question is complete
 		if (this.getCurrentQuestionNumber() === this.getQuestionLimit()) {
@@ -150,31 +166,58 @@ export default class PracticeQuiz {
 		}
 		// Don't continue if awaiting user response
 		if (this.getState() === 'awaitingUserResponse') {
-			return this.getLatestContent();
+			throw new KotlinKhaosAPIError('Awaiting user response, cannot continue', 400);
 		}
 
-		const feedbackMessage = await continueConversation(this, env);
-		await this.incrementCurrentQuestionNumber(env);
-		return feedbackMessage;
+		const { newState, nextQuestion } = await continueConversation(this, env);
+		this.appendMessageToHistory(env, newState, nextQuestion);
+		this.incrementCurrentQuestionNumber();
+		await this.saveStateToKv(env);
+		return this.getLatestContent();
 	}
 
 	public async giveFeedback(env: Env, userAnswer: string) {
-		// Don't generate feedback if quiz is finished or if assistant has already responded
-		if (this.isFinished() || this.getState() === 'assistantResponded') {
-			return this.getLatestContent();
+		if (!userAnswer) {
+			throw new KotlinKhaosAPIError('No answer specified!', 400);
 		}
 
-		const feedbackMessage = await giveFeedbackToConversation(this, userAnswer, env);
-		return feedbackMessage;
+		if (userAnswer.length > 300) {
+			throw new KotlinKhaosAPIError('Please shorten your answer', 400);
+		}
+
+		// Don't generate feedback if quiz is finished or if assistant has already responded
+		if (this.getState() === 'assistantResponded') {
+			throw new KotlinKhaosAPIError('Awaiting user response, cannot give feedback', 400);
+		}
+		if (this.isFinished()) {
+			throw new KotlinKhaosAPIError('Cannot give feedback, quiz has finished', 400);
+		}
+
+		const { newState, messages } = await giveFeedbackToConversation(this, userAnswer, env);
+		this.appendMessagesToHistory(env, newState, messages);
+		await this.saveStateToKv(env);
+		return this.getLatestContent();
 	}
 
 	public async getFinalScore(env: Env) {
-		const finalScore = await giveFinalScoreFromConversation(this, env);
-		return finalScore;
+		const { newState, finalScore } = await giveFinalScoreFromConversation(this, env);
+		this.appendMessageToHistory(env, newState, finalScore);
+
+		// Validate finalScore
+		const parsedFinalScore = parseFinalScore(this.getLatestContent());
+		if (!parsedFinalScore) {
+			throw new KotlinKhaosAPIError('Error parsing final score for practiceQuiz', 500);
+		}
+
+		await this.saveStateToKv(env);
+		return parsedFinalScore;
 	}
 
 	private async saveStateToKv(env: Env) {
-		await env.PRACTICE_QUIZ_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 });
+		await env.PRACTICE_QUIZ_CONVERSATIONS.put(this.getId(), this.toString(), { expirationTtl: 86400 }).catch((err) => {
+			console.error(err);
+			throw new KotlinKhaosAPIError('Error saving practiceQuiz state', 500);
+		});
 	}
 
 	private toString() {

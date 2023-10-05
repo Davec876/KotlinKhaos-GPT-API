@@ -1,5 +1,5 @@
 import { OpenAI } from 'openai';
-import { getModel, getStartingMessage, parseFinalScore } from './openAiShared';
+import { getModel, getStartingMessage } from './openAiShared';
 import type { Env } from '../../index';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type PracticeQuiz from '../../classes/PracticeQuiz';
@@ -16,7 +16,7 @@ function giveFeedbackMessage(practiceQuiz: PracticeQuiz, userMessage: ChatComple
 
 function continueConversationMessage(practiceQuiz: PracticeQuiz): ChatCompletionMessage[] {
 	const startingMessage = getStartingMessage(practiceQuiz.getSavedUsersCourseInfo(), practiceQuiz.getPrompt());
-	return [...startingMessage, ...practiceQuiz.getHistory()];
+	return startingMessage.concat(practiceQuiz.getHistory());
 }
 
 function getFinalScoreMessage(history: ChatCompletionMessage[]): ChatCompletionMessage[] {
@@ -44,7 +44,7 @@ export async function createNewConversation(
 	return newQuestion;
 }
 
-export async function continueConversation(practiceQuiz: PracticeQuiz, env: Env): Promise<string | null> {
+export async function continueConversation(practiceQuiz: PracticeQuiz, env: Env) {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = continueConversationMessage(practiceQuiz);
 
@@ -54,13 +54,11 @@ export async function continueConversation(practiceQuiz: PracticeQuiz, env: Env)
 		max_tokens: 50,
 	});
 	const nextQuestion = completion.choices[0].message;
-
 	const newState = 'awaitingUserResponse';
-	await practiceQuiz.appendMessageToHistory(env, newState, nextQuestion);
-	return practiceQuiz.getLatestContent();
+	return { newState: newState as 'awaitingUserResponse', nextQuestion };
 }
 
-export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, userAnswer: string, env: Env): Promise<string | null> {
+export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, userAnswer: string, env: Env) {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const userMessage: ChatCompletionMessage = {
 		content: userAnswer,
@@ -77,18 +75,11 @@ export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, use
 
 	// Combine user message and feedback from GPT
 	const messages = [userMessage, feedback];
-
 	const newState = 'assistantResponded';
-	await practiceQuiz.appendMessagesToHistory(env, newState, messages);
-	return practiceQuiz.getLatestContent();
+	return { newState: newState as 'assistantResponded', messages };
 }
 
-export async function giveFinalScoreFromConversation(
-	practiceQuiz: PracticeQuiz,
-	env: Env
-): Promise<{
-	score: string;
-} | null> {
+export async function giveFinalScoreFromConversation(practiceQuiz: PracticeQuiz, env: Env) {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = getFinalScoreMessage(practiceQuiz.getHistory());
 
@@ -98,15 +89,6 @@ export async function giveFinalScoreFromConversation(
 		max_tokens: 50,
 	});
 	const finalScore = completion.choices[0].message;
-
-	// Validate finalScore
-	parseFinalScore(finalScore.content);
 	const newState = 'completed';
-	await practiceQuiz.appendMessageToHistory(env, newState, finalScore);
-
-	if (!practiceQuiz.getLatestContent()) {
-		return null;
-	}
-
-	return parseFinalScore(practiceQuiz.getLatestContent());
+	return { newState: newState as 'completed', finalScore };
 }

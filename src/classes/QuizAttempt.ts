@@ -2,11 +2,13 @@ import Quiz from './Quiz';
 import type { Env } from '../index';
 import type User from './User';
 import { giveFinalScoreFromQuizAttempt } from '../services/openAi/openAiQuizAttempt';
+import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
+import { parseFinalScore } from '../services/openAi/openAiShared';
 
 export default class QuizAttempt {
 	private readonly id: string;
-	private readonly quizId: string;
-	private readonly userId: string;
+	private readonly quizId: Quiz['id'];
+	private readonly userId: User['id'];
 	private readonly quizQuestions: Quiz['questions'];
 	private score: string;
 	private userAnswers: string[];
@@ -60,6 +62,9 @@ export default class QuizAttempt {
 	private setScore(score: string) {
 		this.score = score;
 	}
+	private setUserAnswers(userAnswers: string[]) {
+		this.userAnswers = userAnswers;
+	}
 	private setSubmitted(submitted: boolean) {
 		this.submitted = submitted;
 	}
@@ -72,14 +77,11 @@ export default class QuizAttempt {
 		const quizAttemptId = crypto.randomUUID();
 		const quiz = await Quiz.getQuiz(env, quizId);
 
-		if (!quiz) {
-			return null;
-		}
-
 		const score = '';
 		const userAnswers: string[] = [];
 		const submitted = false;
 
+		await quiz.addStartedAttemptUserId(env, user.getId());
 		await env.QUIZ_ATTEMPTS.put(
 			quizAttemptId,
 			JSON.stringify({
@@ -90,30 +92,44 @@ export default class QuizAttempt {
 				userAnswers,
 				submitted,
 			})
-		);
+		).catch((err) => {
+			console.error(err);
+			throw new KotlinKhaosAPIError('Error creating new quizAttempt', 500);
+		});
 
 		return new QuizAttempt(quizAttemptId, quiz.getId(), user.getId(), quiz.getQuestions(), score, userAnswers, submitted);
 	}
 
 	// Load quizAttempt from kv
 	public static async getQuizAttempt(env: Env, quizAttemptId: string) {
-		const res = await env.QUIZ_ATTEMPTS.get(quizAttemptId);
+		try {
+			const res = await env.QUIZ_ATTEMPTS.get(quizAttemptId).catch((err) => {
+				console.error(err);
+				throw new KotlinKhaosAPIError('Error loading quizAttempt state', 500);
+			});
 
-		if (!res) {
-			return null;
+			if (!res) {
+				throw new KotlinKhaosAPIError('No quizAttempt found by that Id', 404);
+			}
+
+			const parsedRes = JSON.parse(res);
+
+			return new QuizAttempt(
+				quizAttemptId,
+				parsedRes.quizId,
+				parsedRes.userId,
+				parsedRes.quizQuestions,
+				parsedRes.score,
+				parsedRes.userAnswers,
+				parsedRes.submitted
+			);
+		} catch (err) {
+			if (err instanceof SyntaxError) {
+				console.error(err);
+				throw new KotlinKhaosAPIError('Error parsing quiz from kv', 500);
+			}
+			throw err;
 		}
-
-		const parsedRes = JSON.parse(res);
-
-		return new QuizAttempt(
-			quizAttemptId,
-			parsedRes.quizId,
-			parsedRes.userId,
-			parsedRes.quizQuestions,
-			parsedRes.score,
-			parsedRes.userAnswers,
-			parsedRes.submitted
-		);
 	}
 
 	private getUserAttemptSnapshot() {
@@ -123,28 +139,42 @@ export default class QuizAttempt {
 		};
 	}
 
-	public async submitAttempt(env: Env) {
-		// TODO: Add further validation and better errors here
-		if (this.getSubmitted() && this.getNumberOfQuestions() !== this.getNumberOfAnswers()) {
-			return null;
+	public async submitAttempt(env: Env, userAnswers: string[]) {
+		this.setUserAnswers(userAnswers);
+
+		if (this.getNumberOfAnswers() > this.getNumberOfQuestions()) {
+			throw new KotlinKhaosAPIError("You've got too many answers in your response", 400);
+		}
+		if (this.getNumberOfAnswers() < this.getNumberOfQuestions()) {
+			const diff = this.getNumberOfAnswers() - this.getNumberOfQuestions();
+			throw new KotlinKhaosAPIError(`You're missing answers from your quiz, add ${diff} more`, 400);
+		}
+		if (this.getSubmitted()) {
+			throw new KotlinKhaosAPIError('quizAttempt has already been submitted', 400);
 		}
 
-		const score = await giveFinalScoreFromQuizAttempt(this, env);
-
-		if (!score) {
-			return null;
+		const scoreMessage = await giveFinalScoreFromQuizAttempt(this, env);
+		if (!scoreMessage.content) {
+			throw new KotlinKhaosAPIError('Error generating score', 500);
+		}
+		// Validate finalScore
+		const parsedFinalScore = parseFinalScore(scoreMessage.content);
+		if (!parsedFinalScore) {
+			throw new KotlinKhaosAPIError('Error parsing final score for quizAttempt', 500);
 		}
 
-		this.setScore(score);
+		this.setScore(parsedFinalScore.score);
 		this.setSubmitted(true);
 		this.saveStateToKv(env);
-		await Quiz.addUserAttempt(env, this.getUserAttemptSnapshot(), this.getQuizId());
-
-		return { score: score };
+		await Quiz.addFinishedUserAttempt(env, this.getUserAttemptSnapshot(), this.getQuizId());
+		return { score: this.getScore() };
 	}
 
 	private async saveStateToKv(env: Env) {
-		await env.QUIZ_ATTEMPTS.put(this.getId(), this.toString());
+		await env.QUIZ_ATTEMPTS.put(this.getId(), this.toString()).catch((err) => {
+			console.error(err);
+			throw new KotlinKhaosAPIError('Error saving quizAttempt state', 500);
+		});
 	}
 
 	private toString() {

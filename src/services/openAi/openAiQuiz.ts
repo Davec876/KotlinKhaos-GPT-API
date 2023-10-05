@@ -8,7 +8,7 @@ import type Course from '../../classes/Course';
 
 function continueConversationMessage(quiz: Quiz): ChatCompletionMessage[] {
 	const startingMessage = getStartingMessage(quiz.getSavedAuthorsCourseInfo(), quiz.getPrompt());
-	return [...startingMessage, ...quiz.getQuestions()];
+	return startingMessage.concat(quiz.getQuestions());
 }
 
 export async function createNewQuiz(env: Env, usersCourse: Course, prompt: string): Promise<ChatCompletionMessage> {

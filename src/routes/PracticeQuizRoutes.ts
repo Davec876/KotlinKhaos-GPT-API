@@ -47,10 +47,6 @@ export class CreatePracticeQuizRoute extends OpenAPIRoute {
 			return error(400, 'No prompt specified!');
 		}
 
-		if (prompt.length > 20) {
-			return error(400, 'Prompt is too long');
-		}
-
 		const practiceQuiz = await PracticeQuiz.newQuiz(env, user, prompt);
 
 		return { problem: practiceQuiz.getLatestContent(), practiceQuizId: practiceQuiz.getId() };
@@ -79,10 +75,6 @@ export class GetPracticeQuizRoute extends OpenAPIRoute {
 	async handle(req: IRequest, env: Env) {
 		const practiceQuizId = req.params.practiceQuizId;
 		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
-
-		if (!practiceQuiz) {
-			return error(404, 'No practiceQuiz by that Id found');
-		}
 
 		return { message: practiceQuiz.getLatestContent() };
 	}
@@ -117,20 +109,7 @@ export class GivePracticeQuizFeedbackRoute extends OpenAPIRoute {
 		// TODO: Add typeguard later
 		const userAnswer: string = context.body.answer;
 
-		if (!userAnswer) {
-			return error(400, 'No answer specified!');
-		}
-
-		if (userAnswer.length > 300) {
-			return error(400, 'Please shorten your answer');
-		}
-
 		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
-
-		if (!practiceQuiz) {
-			return error(404, 'No practiceQuiz by that Id found');
-		}
-
 		const message = await practiceQuiz.giveFeedback(env, userAnswer);
 
 		return { message };
@@ -160,13 +139,7 @@ export class ContinuePracticeQuizRoute extends OpenAPIRoute {
 		const practiceQuizId = req.params.practiceQuizId;
 
 		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
-
-		if (!practiceQuiz) {
-			return error(404, 'No practiceQuiz by that Id found');
-		}
-
 		const message = await practiceQuiz.continue(env);
-
 		return { message };
 	}
 }

@@ -1,5 +1,5 @@
 import { Bool, OpenAPIRoute, Path, Str } from '@cloudflare/itty-router-openapi';
-import { type IRequest, error } from 'itty-router';
+import { type IRequest } from 'itty-router';
 import type { Env } from '../index';
 import Quiz, { type QuizOptions } from '../classes/Quiz';
 
@@ -40,15 +40,6 @@ export class CreateQuizRoute extends OpenAPIRoute {
 
 		// TODO: Add typeguard later
 		const quizOptions: QuizOptions = context.body.options;
-
-		if (quizOptions.prompt.length > 20) {
-			return error(400, 'Prompt is too long');
-		}
-
-		if (quizOptions.questionLimit > 5) {
-			return error(400, 'You can only configure up to 5 questions for a quiz');
-		}
-
 		const quiz = await Quiz.newQuiz(env, author, quizOptions);
 		return { quizId: quiz.getId() };
 	}
@@ -78,12 +69,10 @@ export class GetQuizRoute extends OpenAPIRoute {
 	};
 
 	async handle(req: IRequest, env: Env) {
+		const student = env.REQ_USER;
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
-		if (!quiz) {
-			return error(404, 'No quiz by that Id found');
-		}
-		return { quiz: quiz.getQuizViewForStudent() };
+		return { quiz: quiz.getQuizViewForStudent(student) };
 	}
 }
 
@@ -109,14 +98,7 @@ export class NextQuizQuestionRoute extends OpenAPIRoute {
 	async handle(req: IRequest, env: Env) {
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
-		if (!quiz) {
-			return error(404, 'No quiz by that Id found');
-		}
 		const question = await quiz.nextQuestion(env);
-
-		if (!question) {
-			return error(500, 'Something went wrong getting the next question');
-		}
 		return { question };
 	}
 }
@@ -143,14 +125,7 @@ export class StartQuizRoute extends OpenAPIRoute {
 	async handle(req: IRequest, env: Env) {
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
-		if (!quiz) {
-			return error(404, 'No quiz by that Id found');
-		}
 		const success = await quiz.startQuiz(env);
-
-		if (!success) {
-			return error(500, 'Something went wrong while starting the quiz');
-		}
 		return { success };
 	}
 }

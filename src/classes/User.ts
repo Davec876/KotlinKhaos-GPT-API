@@ -1,10 +1,11 @@
 import type { Env } from '../index';
 import type { FirebaseUserToken } from '../services/firebase';
+import type Course from './Course';
 
 // Course for interacting with firebase user
 export default class User {
 	private readonly id: string;
-	private readonly courseId: string;
+	private readonly courseId: Course['id'];
 	private readonly name: string;
 
 	private constructor(id: User['id'], courseId: User['courseId'], name: User['name']) {
