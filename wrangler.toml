@@ -9,6 +9,6 @@ routes = [{ pattern = "kotlin-khaos-api.maximoguk.com", custom_domain = true }]
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
 kv_namespaces = [
     { binding = "QUIZS", id = "8f63af8fdff54a22a4a602fcd18d42c3", preview_id = "8f63af8fdff54a22a4a602fcd18d42c3"},
-    { binding = "QUIZ_CONVERSATIONS", id = "f6f7404a89fd4e4d90a64ce84b2e1074", preview_id = "f6f7404a89fd4e4d90a64ce84b2e1074" },
+    { binding = "QUIZ_ATTEMPTS", id = "249b8b3cf3ba46a7a8f4a685eb534832", preview_id = "249b8b3cf3ba46a7a8f4a685eb534832" },
     { binding = "PRACTICE_QUIZ_CONVERSATIONS", id = "7b04352cf94844c4b9b2a24c8c483f37", preview_id = "7b04352cf94844c4b9b2a24c8c483f37" }
 ]

@@ -2,7 +2,7 @@ import type { Env } from '../index';
 import type Quiz from './Quiz';
 import type User from './User';
 
-export default class QuizConversation {
+export default class QuizAttempt {
 	private readonly id: string;
 	private readonly quizId: string;
 	private readonly userId: string;
@@ -11,10 +11,10 @@ export default class QuizConversation {
 	private userAnswers: string[];
 
 	private constructor(
-		id: QuizConversation['id'],
-		quizId: QuizConversation['quizId'],
-		userId: QuizConversation['userId'],
-		questionLimit: QuizConversation['questionLimit'],
+		id: QuizAttempt['id'],
+		quizId: QuizAttempt['quizId'],
+		userId: QuizAttempt['userId'],
+		questionLimit: QuizAttempt['questionLimit'],
 		quizQuestions: Quiz['questions'],
 		userAnswers: string[]
 	) {
@@ -45,17 +45,16 @@ export default class QuizConversation {
 		return this.userAnswers;
 	}
 
-	public static async newConversation(env: Env, quiz: Quiz, user: User) {
-		const quizConversationId = crypto.randomUUID();
+	public static async newQuizAttempt(env: Env, quiz: Quiz, user: User) {
+		const quizAttemptId = crypto.randomUUID();
 
-		// const completionMessage = await createNewConversation(env, prompt);
+		// const completionMessage = await createNewQuiz(env, prompt);
 		// const history = [completionMessage];
 		const userAnswers = [];
 
-		// await env.QUIZ_CONVERSATIONS.put(
-		// 	quizConversationId,
+		// await env.QUIZ_ATTEMPTS.put(
+		// 	quizAttemptId,
 		// 	JSON.stringify({
-		// 		quizId: quiz.getId(),
 		// 		userId: user.getId(),
 		// 		questionLimit: quiz.getQuestionLimit(),
 		// 		quizQuestions: quiz.getQuestions(),
@@ -63,12 +62,12 @@ export default class QuizConversation {
 		// 	}),
 		// 	{ expirationTtl: 86400 }
 		// );
-		return new QuizConversation(quizConversationId, quiz.getId(), user.getId(), quiz.getQuestionLimit(), quiz.getQuestions(), userAnswers);
+		return new QuizAttempt(quizAttemptId, quiz.getId(), user.getId(), quiz.getQuestionLimit(), quiz.getQuestions(), userAnswers);
 	}
 
-	// Load quizConversation from kv
-	public static async getConversation(env: Env, quizConversationId: string) {
-		const res = await env.QUIZ_CONVERSATIONS.get(quizConversationId);
+	// Load quizAttempt from kv
+	public static async getQuizAttempt(env: Env, quizAttemptId: string) {
+		const res = await env.QUIZ_ATTEMPTS.get(quizAttemptId);
 
 		if (!res) {
 			return null;
@@ -76,8 +75,8 @@ export default class QuizConversation {
 
 		const parsedRes = JSON.parse(res);
 
-		return new QuizConversation(
-			quizConversationId,
+		return new QuizAttempt(
+			quizAttemptId,
 			parsedRes.userId,
 			parsedRes.quizId,
 			parsedRes.questionLimit,

@@ -31,7 +31,7 @@ export interface Env {
 	FIREBASE_API_KEY: string;
 	REQ_USER: User;
 	QUIZS: KVNamespace;
-	QUIZ_CONVERSATIONS: KVNamespace;
+	QUIZ_ATTEMPTS: KVNamespace;
 	PRACTICE_QUIZ_CONVERSATIONS: KVNamespace;
 }
 
