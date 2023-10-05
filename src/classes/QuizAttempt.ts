@@ -30,7 +30,7 @@ export default class QuizAttempt {
 		this.submitted = submitted;
 	}
 
-	private getId() {
+	public getId() {
 		return this.id;
 	}
 	private getQuizId() {
@@ -63,6 +63,10 @@ export default class QuizAttempt {
 	private setSubmitted(submitted: boolean) {
 		this.submitted = submitted;
 	}
+	public getQuizAttemptViewForStudent() {
+		const questions = this.getQuizQuestions().map(({ content }) => content);
+		return { questions, submitted: this.getSubmitted() };
+	}
 
 	public static async newQuizAttempt(env: Env, user: User, quizId: string) {
 		const quizAttemptId = crypto.randomUUID();
@@ -73,7 +77,7 @@ export default class QuizAttempt {
 		}
 
 		const score = '';
-		const userAnswers = [];
+		const userAnswers: string[] = [];
 		const submitted = false;
 
 		await env.QUIZ_ATTEMPTS.put(

@@ -22,6 +22,8 @@ import {
 	GetPracticeQuizRoute,
 	GivePracticeQuizFeedbackRoute,
 } from './routes/PracticeQuizRoutes';
+import { CreateQuizRoute, GetQuizRoute, NextQuizQuestionRoute, StartQuizRoute } from './routes/QuizRoutes';
+import { CreateQuizAttemptRoute, GetQuizAttemptRoute, SubmitQuizAttemptRoute } from './routes/QuizAttemptRoutes';
 import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
@@ -81,6 +83,27 @@ router
 
 	// POST GPT get the next practice quiz question
 	.post('/practice-quiz/:practiceQuizId/continue', ContinuePracticeQuizRoute)
+
+	// POST GPT create a new quiz
+	.post('/quiz/', CreateQuizRoute)
+
+	// GET GPT quiz by Id
+	.get('/quiz/:quizId', GetQuizRoute)
+
+	// POST GPT get the next quiz question
+	.post('/quiz/:quizId/next-question', NextQuizQuestionRoute)
+
+	// POST GPT start the quiz
+	.post('/quiz/:quizId/start', StartQuizRoute)
+
+	// POST GPT create a new quiz attempt
+	.post('/quiz/:quizId/attempt', CreateQuizAttemptRoute)
+
+	// GET GPT quizAttempt by Id
+	.get('/quiz-attempts/:quizAttemptId', GetQuizAttemptRoute)
+
+	// POST GPT submit quiz attempt
+	.post('/quiz-attempts/:quizAttemptId/submit', SubmitQuizAttemptRoute)
 
 	// 404 for everything else
 	.all('*', () => error(404));

@@ -9,7 +9,7 @@ interface UserAttempt {
 	readonly score: string;
 }
 
-interface QuizOptions {
+export interface QuizOptions {
 	readonly name: string;
 	readonly questionLimit: number;
 	readonly prompt: string;
@@ -89,6 +89,9 @@ export default class Quiz {
 	}
 	public getNumberOfQuestions() {
 		return this.questions.length;
+	}
+	public getQuizViewForStudent() {
+		return { name: this.getName(), started: this.getStarted(), finished: this.getFinished() };
 	}
 	private async addQuestion(question: ChatCompletionMessage) {
 		this.questions.push(question);
@@ -174,13 +177,20 @@ export default class Quiz {
 		return nextQuestion.content;
 	}
 
-	public startQuiz() {
+	public async startQuiz(env: Env) {
 		// TODO: Do better error handling here, but don't let quiz start if question and questionLimit aren't the same
 		if (this.getNumberOfQuestions() !== this.getQuestionLimit()) {
 			return null;
 		}
 
+		// TODO: Throw error if quiz is already started
+		if (this.getStarted()) {
+			return true;
+		}
+
 		this.started = true;
+		await this.saveStateToKv(env);
+		return true;
 	}
 
 	public static async addUserAttempt(env: Env, userAttempt: UserAttempt, quizId: string) {
