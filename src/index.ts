@@ -79,7 +79,7 @@ router
 	// POST GPT give feedback to a user's response
 	.post('/practice-quiz/:practiceQuizId', GivePracticeQuizFeedbackRoute)
 
-	// POST GPT get the next quiz question
+	// POST GPT get the next practice quiz question
 	.post('/practice-quiz/:practiceQuizId/continue', ContinuePracticeQuizRoute)
 
 	// 404 for everything else

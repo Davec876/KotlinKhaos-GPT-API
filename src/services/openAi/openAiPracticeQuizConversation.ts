@@ -1,20 +1,8 @@
 import { OpenAI } from 'openai';
+import { getModel, getStartingMessage, parseFinalScore } from './openAiShared';
 import type { Env } from '../../index';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type PracticeQuiz from '../../classes/PracticeQuiz';
-
-function getStartingMessage(savedUsersCourseInfo: PracticeQuiz['savedUsersCourseInfo'], prompt: string): ChatCompletionMessage[] {
-	return [
-		{
-			content: `For the following questions, reply with only one numbered interview-type knowledge question. This is for a ${savedUsersCourseInfo.educationLevel} student taking a course about the ${savedUsersCourseInfo.description}`,
-			role: 'system',
-		},
-		{
-			content: `With a particular focus on ${prompt}`,
-			role: 'user',
-		},
-	];
-}
 
 function giveFeedbackMessage(practiceQuiz: PracticeQuiz, userMessage: ChatCompletionMessage): ChatCompletionMessage[] {
 	const usersCourseInfo = practiceQuiz.getSavedUsersCourseInfo();
@@ -38,10 +26,6 @@ function getFinalScoreMessage(history: ChatCompletionMessage[]): ChatCompletionM
 		role: 'system',
 	});
 	return finalScoreMessage;
-}
-
-function getModel(env: Env) {
-	return env.GPT_4 === 'true' ? 'gpt-4' : 'gpt-3.5-turbo';
 }
 
 export async function createNewConversation(
@@ -99,7 +83,12 @@ export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, use
 	return practiceQuiz.getLatestContent();
 }
 
-export async function giveFinalScoreFromConversation(practiceQuiz: PracticeQuiz, env: Env): Promise<string | null> {
+export async function giveFinalScoreFromConversation(
+	practiceQuiz: PracticeQuiz,
+	env: Env
+): Promise<{
+	score: string;
+} | null> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = getFinalScoreMessage(practiceQuiz.getHistory());
 
@@ -108,9 +97,16 @@ export async function giveFinalScoreFromConversation(practiceQuiz: PracticeQuiz,
 		messages: message,
 		max_tokens: 50,
 	});
-	const completionMessage = completion.choices[0].message;
+	const finalScore = completion.choices[0].message;
 
+	// Validate finalScore
+	parseFinalScore(finalScore.content);
 	const newState = 'completed';
-	await practiceQuiz.appendMessageToHistory(env, newState, completionMessage);
-	return practiceQuiz.getLatestContent();
+	await practiceQuiz.appendMessageToHistory(env, newState, finalScore);
+
+	if (!practiceQuiz.getLatestContent()) {
+		return null;
+	}
+
+	return parseFinalScore(practiceQuiz.getLatestContent());
 }

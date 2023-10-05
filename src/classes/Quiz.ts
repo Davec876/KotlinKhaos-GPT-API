@@ -1,11 +1,12 @@
+import Course, { type CourseInfoSnapshotForQuiz } from './Course';
+import { createNewQuiz, getNextQuestion } from '../services/openAi/openAiQuiz';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
-import Course from './Course';
 
 interface UserAttempt {
 	readonly userId: string;
-	score: number;
+	readonly score: string;
 }
 
 interface QuizOptions {
@@ -18,8 +19,10 @@ export default class Quiz {
 	private readonly id: string;
 	private readonly authorId: string;
 	private readonly courseId: string;
+	private readonly savedAuthorsCourseInfo: CourseInfoSnapshotForQuiz;
+	private readonly prompt: string;
+	private readonly questionLimit: number;
 	private name: string;
-	private questionLimit: number;
 	private userAttempts: UserAttempt[];
 	private started: boolean;
 	private finished: boolean;
@@ -29,8 +32,10 @@ export default class Quiz {
 		id: Quiz['id'],
 		authorId: Quiz['authorId'],
 		courseId: Quiz['courseId'],
-		name: Quiz['name'],
+		savedAuthorsCourseInfo: Quiz['savedAuthorsCourseInfo'],
+		prompt: Quiz['prompt'],
 		questionLimit: Quiz['questionLimit'],
+		name: Quiz['name'],
 		userAttempts: Quiz['userAttempts'],
 		started: Quiz['started'],
 		finished: Quiz['finished'],
@@ -39,8 +44,10 @@ export default class Quiz {
 		this.id = id;
 		this.authorId = authorId;
 		this.courseId = courseId;
-		this.name = name;
+		this.savedAuthorsCourseInfo = savedAuthorsCourseInfo;
+		this.prompt = prompt;
 		this.questionLimit = questionLimit;
+		this.name = name;
 		this.userAttempts = userAttempts;
 		this.started = started;
 		this.finished = finished;
@@ -56,16 +63,22 @@ export default class Quiz {
 	private getCourseId() {
 		return this.courseId;
 	}
-	private getName() {
-		return this.name;
+	public getSavedAuthorsCourseInfo() {
+		return this.savedAuthorsCourseInfo;
+	}
+	public getPrompt() {
+		return this.prompt;
 	}
 	public getQuestionLimit() {
 		return this.questionLimit;
 	}
+	private getName() {
+		return this.name;
+	}
 	private getUserAttempts() {
 		return this.userAttempts;
 	}
-	private getStarted() {
+	public getStarted() {
 		return this.started;
 	}
 	private getFinished() {
@@ -74,42 +87,54 @@ export default class Quiz {
 	public getQuestions() {
 		return this.questions;
 	}
+	public getNumberOfQuestions() {
+		return this.questions.length;
+	}
+	private async addQuestion(question: ChatCompletionMessage) {
+		this.questions.push(question);
+	}
 
 	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
 		const quizId = crypto.randomUUID();
 
-		const usersCourse = Course.getCourse(env, author.getCourseId());
-		const userAttempts = [];
+		const authorsCourse = await Course.getCourse(env, author.getCourseId());
+		const authorsCourseInfo = authorsCourse.getCourseInfoSnapshotForQuiz();
+		const userAttempts: UserAttempt[] = [];
 		const started = false;
 		const finished = false;
 
-		// const completionMessage = await createNewConversation(env, prompt);
-		// const questions = [completionMessage];
-		// await env.QUIZS.put(
-		// 	quizId,
-		// 	JSON.stringify({
-		// 		authorId: author.getId(),
-		// 		courseId: author.getCourseid(),
-		// 		name: quizOptions.name,
-		// 		questionLimit: quizOptions.questionLimit,
-		// 		userAttempts: userAttempts,
-		// 		started: started,
-		// 		finished: finished,
-		// 		questions: questions,
-		// 	})
-		// );
+		const question = await createNewQuiz(env, authorsCourse, quizOptions.prompt);
+		const questions = [question];
 
-		// return new Quiz(
-		// 	quizId,
-		// 	author.getId(),
-		// 	author.getCourseId(),
-		// 	quizOptions.name,
-		// 	quizOptions.questionLimit,
-		// 	userAttempts,
-		// 	started,
-		// 	finished,
-		// 	questions
-		// );
+		await env.QUIZS.put(
+			quizId,
+			JSON.stringify({
+				authorId: author.getId(),
+				courseId: author.getCourseId(),
+				savedAuthorsCourseInfo: authorsCourseInfo,
+				prompt: quizOptions.prompt,
+				questionLimit: quizOptions.questionLimit,
+				name: quizOptions.name,
+				userAttempts,
+				started,
+				finished,
+				questions,
+			})
+		);
+
+		return new Quiz(
+			quizId,
+			author.getId(),
+			author.getCourseId(),
+			authorsCourseInfo,
+			quizOptions.prompt,
+			quizOptions.questionLimit,
+			quizOptions.name,
+			userAttempts,
+			started,
+			finished,
+			questions
+		);
 	}
 
 	// Load quiz from kv
@@ -124,10 +149,12 @@ export default class Quiz {
 
 		return new Quiz(
 			quizId,
-			parsedRes.id,
+			parsedRes.authorId,
 			parsedRes.courseId,
-			parsedRes.name,
+			parsedRes.savedAuthorsCourseInfo,
+			parsedRes.prompt,
 			parsedRes.questionLimit,
+			parsedRes.name,
 			parsedRes.userAttempts,
 			parsedRes.started,
 			parsedRes.finished,
@@ -135,12 +162,51 @@ export default class Quiz {
 		);
 	}
 
+	public async nextQuestion(env: Env) {
+		// TODO: Do better error handling here, but don't generate another question if limit reached
+		if (this.getNumberOfQuestions() >= this.getQuestionLimit()) {
+			return null;
+		}
+
+		const nextQuestion = await getNextQuestion(this, env);
+		this.addQuestion(nextQuestion);
+		await this.saveStateToKv(env);
+		return nextQuestion.content;
+	}
+
+	public startQuiz() {
+		// TODO: Do better error handling here, but don't let quiz start if question and questionLimit aren't the same
+		if (this.getNumberOfQuestions() !== this.getQuestionLimit()) {
+			return null;
+		}
+
+		this.started = true;
+	}
+
+	public static async addUserAttempt(env: Env, userAttempt: UserAttempt, quizId: string) {
+		const quiz = await Quiz.getQuiz(env, quizId);
+
+		//TODO: Better error handling
+		if (!quiz) {
+			return null;
+		}
+
+		quiz.userAttempts.push(userAttempt);
+		quiz.saveStateToKv(env);
+	}
+
+	private async saveStateToKv(env: Env) {
+		await env.QUIZS.put(this.getId(), this.toString());
+	}
+
 	private toString() {
 		return JSON.stringify({
 			authorId: this.getAuthorId(),
 			courseId: this.getCourseId(),
-			name: this.getName(),
+			savedAuthorsCourseInfo: this.getSavedAuthorsCourseInfo(),
+			prompt: this.getPrompt(),
 			questionLimit: this.getQuestionLimit(),
+			name: this.getName(),
 			userAttempts: this.getUserAttempts(),
 			started: this.getStarted(),
 			finished: this.getFinished(),

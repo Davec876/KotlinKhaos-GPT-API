@@ -1,29 +1,33 @@
+import Quiz from './Quiz';
 import type { Env } from '../index';
-import type Quiz from './Quiz';
 import type User from './User';
+import { giveFinalScoreFromQuizAttempt } from '../services/openAi/openAiQuizAttempt';
 
 export default class QuizAttempt {
 	private readonly id: string;
 	private readonly quizId: string;
 	private readonly userId: string;
-	private readonly questionLimit: number;
 	private readonly quizQuestions: Quiz['questions'];
+	private score: string;
 	private userAnswers: string[];
+	private submitted: boolean;
 
 	private constructor(
 		id: QuizAttempt['id'],
 		quizId: QuizAttempt['quizId'],
 		userId: QuizAttempt['userId'],
-		questionLimit: QuizAttempt['questionLimit'],
 		quizQuestions: Quiz['questions'],
-		userAnswers: string[]
+		score: QuizAttempt['score'],
+		userAnswers: string[],
+		submitted: QuizAttempt['submitted']
 	) {
 		this.id = id;
 		this.quizId = quizId;
 		this.userId = userId;
-		this.questionLimit = questionLimit;
 		this.quizQuestions = quizQuestions;
+		this.score = score;
 		this.userAnswers = userAnswers;
+		this.submitted = submitted;
 	}
 
 	private getId() {
@@ -35,34 +39,56 @@ export default class QuizAttempt {
 	private getUserId() {
 		return this.userId;
 	}
-	private getQuestionLimit() {
-		return this.questionLimit;
-	}
-	private getQuizQuestions() {
+	public getQuizQuestions() {
 		return this.quizQuestions;
 	}
-	private getUserAnswers() {
+	private getScore() {
+		return this.score;
+	}
+	public getUserAnswers() {
 		return this.userAnswers;
 	}
+	private getSubmitted() {
+		return this.submitted;
+	}
+	public getNumberOfQuestions() {
+		return this.quizQuestions.length;
+	}
+	private getNumberOfAnswers() {
+		return this.userAnswers.length;
+	}
+	private setScore(score: string) {
+		this.score = score;
+	}
+	private setSubmitted(submitted: boolean) {
+		this.submitted = submitted;
+	}
 
-	public static async newQuizAttempt(env: Env, quiz: Quiz, user: User) {
+	public static async newQuizAttempt(env: Env, user: User, quizId: string) {
 		const quizAttemptId = crypto.randomUUID();
+		const quiz = await Quiz.getQuiz(env, quizId);
 
-		// const completionMessage = await createNewQuiz(env, prompt);
-		// const history = [completionMessage];
+		if (!quiz) {
+			return null;
+		}
+
+		const score = '';
 		const userAnswers = [];
+		const submitted = false;
 
-		// await env.QUIZ_ATTEMPTS.put(
-		// 	quizAttemptId,
-		// 	JSON.stringify({
-		// 		userId: user.getId(),
-		// 		questionLimit: quiz.getQuestionLimit(),
-		// 		quizQuestions: quiz.getQuestions(),
-		// 		userAnswers: userAnswers,
-		// 	}),
-		// 	{ expirationTtl: 86400 }
-		// );
-		return new QuizAttempt(quizAttemptId, quiz.getId(), user.getId(), quiz.getQuestionLimit(), quiz.getQuestions(), userAnswers);
+		await env.QUIZ_ATTEMPTS.put(
+			quizAttemptId,
+			JSON.stringify({
+				quizId: quiz.getId(),
+				userId: user.getId(),
+				quizQuestions: quiz.getQuestions(),
+				score,
+				userAnswers,
+				submitted,
+			})
+		);
+
+		return new QuizAttempt(quizAttemptId, quiz.getId(), user.getId(), quiz.getQuestions(), score, userAnswers, submitted);
 	}
 
 	// Load quizAttempt from kv
@@ -77,21 +103,54 @@ export default class QuizAttempt {
 
 		return new QuizAttempt(
 			quizAttemptId,
-			parsedRes.userId,
 			parsedRes.quizId,
-			parsedRes.questionLimit,
-			parsedRes.currentQuestionNumber,
-			parsedRes.history
+			parsedRes.userId,
+			parsedRes.quizQuestions,
+			parsedRes.score,
+			parsedRes.userAnswers,
+			parsedRes.submitted
 		);
+	}
+
+	private getUserAttemptSnapshot() {
+		return {
+			userId: this.getUserId(),
+			score: this.getScore(),
+		};
+	}
+
+	public async submitAttempt(env: Env) {
+		// TODO: Add further validation and better errors here
+		if (this.getSubmitted() && this.getNumberOfQuestions() !== this.getNumberOfAnswers()) {
+			return null;
+		}
+
+		const score = await giveFinalScoreFromQuizAttempt(this, env);
+
+		if (!score) {
+			return null;
+		}
+
+		this.setScore(score);
+		this.setSubmitted(true);
+		this.saveStateToKv(env);
+		await Quiz.addUserAttempt(env, this.getUserAttemptSnapshot(), this.getQuizId());
+
+		return { score: score };
+	}
+
+	private async saveStateToKv(env: Env) {
+		await env.QUIZ_ATTEMPTS.put(this.getId(), this.toString());
 	}
 
 	private toString() {
 		return JSON.stringify({
 			quizId: this.getQuizId(),
 			userId: this.getUserId(),
-			questionLimit: this.getQuestionLimit(),
 			quizQuestions: this.getQuizQuestions(),
+			score: this.getScore(),
 			userAnswers: this.getUserAnswers(),
+			submitted: this.getSubmitted(),
 		});
 	}
 }

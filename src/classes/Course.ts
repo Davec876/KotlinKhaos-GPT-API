@@ -1,5 +1,11 @@
 import type { Env } from '../index';
 
+export interface CourseInfoSnapshotForQuiz {
+	id: string;
+	educationLevel: string;
+	description: string;
+}
+
 // Course for interacting with firebase course
 export default class Course {
 	private readonly id: string;
@@ -42,6 +48,9 @@ export default class Course {
 	}
 	private getQuizIds() {
 		return this.quizIds;
+	}
+	public getCourseInfoSnapshotForQuiz(): CourseInfoSnapshotForQuiz {
+		return { id: this.getId(), educationLevel: this.getEducationLevel(), description: this.getDescription() };
 	}
 	// Load course from firebase db
 	public static async getCourse(env: Env, courseId: string) {

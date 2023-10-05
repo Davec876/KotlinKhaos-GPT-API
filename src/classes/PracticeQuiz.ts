@@ -4,22 +4,17 @@ import {
 	giveFeedbackToConversation,
 	giveFinalScoreFromConversation,
 } from '../services/openAi/openAiPracticeQuizConversation';
-import Course from './Course';
+import Course, { type CourseInfoSnapshotForQuiz } from './Course';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
-
-interface SavedUsersCourseInfo {
-	id: string;
-	educationLevel: string;
-	description: string;
-}
+import { parseFinalScore } from '../services/openAi/openAiShared';
 
 export default class PracticeQuiz {
 	private readonly id: string;
 	private readonly userId: string;
 	// The user's course info at time of practice conversation creation
-	private readonly savedUsersCourseInfo: SavedUsersCourseInfo;
+	private readonly savedUsersCourseInfo: CourseInfoSnapshotForQuiz;
 	private readonly prompt: string;
 	private readonly questionLimit: number;
 	private state: 'awaitingUserResponse' | 'assistantResponded' | 'completed';
@@ -29,7 +24,7 @@ export default class PracticeQuiz {
 	private constructor(
 		id: PracticeQuiz['id'],
 		userId: PracticeQuiz['userId'],
-		savedUsersCourseInfo: SavedUsersCourseInfo,
+		savedUsersCourseInfo: PracticeQuiz['savedUsersCourseInfo'],
 		prompt: PracticeQuiz['prompt'],
 		questionLimit: PracticeQuiz['questionLimit'],
 		state: PracticeQuiz['state'],
@@ -100,11 +95,7 @@ export default class PracticeQuiz {
 		const state = 'awaitingUserResponse';
 		const currentQuestionNumber = 1;
 		const usersCourse = await Course.getCourse(env, user.getCourseId());
-		const usersCourseInfo: SavedUsersCourseInfo = {
-			id: usersCourse.getId(),
-			educationLevel: usersCourse.getEducationLevel(),
-			description: usersCourse.getDescription(),
-		};
+		const usersCourseInfo = usersCourse.getCourseInfoSnapshotForQuiz();
 		const question = await createNewConversation(env, usersCourseInfo, prompt);
 		const history = [question];
 
@@ -151,7 +142,7 @@ export default class PracticeQuiz {
 	public async continue(env: Env) {
 		// Finished conversation
 		if (this.isFinished()) {
-			return this.parseFinalScore(this.getLatestContent());
+			return parseFinalScore(this.getLatestContent());
 		}
 		// Generate final score once last question is complete
 		if (this.getCurrentQuestionNumber() === this.getQuestionLimit()) {
@@ -177,26 +168,9 @@ export default class PracticeQuiz {
 		return feedbackMessage;
 	}
 
-	private parseFinalScore(finalScore: string | null) {
-		if (finalScore === null) {
-			return null;
-		}
-
-		try {
-			// TODO: Typeguard this / throw error if gpt returns wrong format
-			return JSON.parse(finalScore) as { score: string };
-		} catch (err) {
-			if (err instanceof SyntaxError) {
-				console.error(err);
-				return null;
-			}
-			throw err;
-		}
-	}
-
 	public async getFinalScore(env: Env) {
 		const finalScore = await giveFinalScoreFromConversation(this, env);
-		return this.parseFinalScore(finalScore);
+		return finalScore;
 	}
 
 	private async saveStateToKv(env: Env) {

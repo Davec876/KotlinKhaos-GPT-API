@@ -137,11 +137,11 @@ export class GivePracticeQuizFeedbackRoute extends OpenAPIRoute {
 	}
 }
 
-// POST GPT get the next quiz question
+// POST GPT get the next practice quiz question
 export class ContinuePracticeQuizRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get the next quiz question',
+		summary: 'Get the next practice quiz question',
 		parameters: {
 			practiceQuizId: Path(Str),
 		},
