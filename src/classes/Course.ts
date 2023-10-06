@@ -15,7 +15,7 @@ export default class Course {
 	private readonly name: string;
 	private readonly educationLevel: string;
 	private readonly description: string;
-	private readonly userIds: Set<User['id']>;
+	private readonly studentIds: Set<User['id']>;
 	private readonly quizIds: Set<Quiz['id']>;
 
 	private constructor(
@@ -24,7 +24,7 @@ export default class Course {
 		name: Course['name'],
 		educationLevel: Course['educationLevel'],
 		description: Course['description'],
-		userIds: Course['userIds'],
+		studentIds: Course['studentIds'],
 		quizIds: Course['quizIds']
 	) {
 		this.id = id;
@@ -32,7 +32,7 @@ export default class Course {
 		this.name = name;
 		this.educationLevel = educationLevel;
 		this.description = description;
-		this.userIds = userIds;
+		this.studentIds = studentIds;
 		this.quizIds = quizIds;
 	}
 
@@ -51,8 +51,8 @@ export default class Course {
 	public getDescription() {
 		return this.description;
 	}
-	public getUserIds() {
-		return this.userIds;
+	public getStudentIds() {
+		return this.studentIds;
 	}
 	private getQuizIds() {
 		return this.quizIds;
@@ -76,11 +76,11 @@ export default class Course {
 			educationLevel: 'University',
 			description:
 				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
-			userIds: ['rkIyTsb1avUYH5QYmIArZbxqQgE2'],
+			studentIds: ['rkIyTsb1avUYH5QYmIArZbxqQgE2'],
 			quizIds: [''],
 		};
 
-		const userIds: Set<string> = new Set(fakeCourseRes.userIds);
+		const studentIds: Set<string> = new Set(fakeCourseRes.studentIds);
 		const quizIds: Set<string> = new Set(fakeCourseRes.quizIds);
 
 		return new Course(
@@ -89,7 +89,7 @@ export default class Course {
 			fakeCourseRes.name,
 			fakeCourseRes.educationLevel,
 			fakeCourseRes.description,
-			userIds,
+			studentIds,
 			quizIds
 		);
 		// return new Course(courseId, parsedRes.instructorId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);

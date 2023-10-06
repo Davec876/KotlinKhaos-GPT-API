@@ -121,10 +121,10 @@ router
 	// POST GPT create a new quiz attempt
 	.post('/student/quizs/:quizId/attempt', CreateQuizAttemptStudentRoute)
 
-	// GET quiz attempt by quizId for a authenticated user
+	// GET quiz attempt score by quizId for a authenticated user
 	.get('/student/quizs/:quizId/attempt', GetQuizAttemptStudentRoute)
 
-	// GET GPT quizAttempt by Id
+	// GET GPT quizAttempt by Id for student
 	.get('/student/quiz-attempts/:quizAttemptId', GetQuizAttemptByIdStudentRoute)
 
 	// POST GPT submit quiz attempt

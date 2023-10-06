@@ -1,6 +1,7 @@
 import Quiz from './Quiz';
 import type { Env } from '../index';
 import type User from './User';
+import type Course from './Course';
 import { giveFinalScoreFromQuizAttempt } from '../services/openAi/openAiQuizAttempt';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 import { parseFinalScore } from '../services/openAi/openAiShared';
@@ -8,7 +9,8 @@ import { parseFinalScore } from '../services/openAi/openAiShared';
 export default class QuizAttempt {
 	private readonly id: string;
 	private readonly quizId: Quiz['id'];
-	private readonly userId: User['id'];
+	private readonly courseId: Course['id'];
+	private readonly studentId: User['id'];
 	private readonly quizQuestions: Quiz['questions'];
 	private score: string;
 	private userAnswers: string[];
@@ -17,7 +19,8 @@ export default class QuizAttempt {
 	private constructor(
 		id: QuizAttempt['id'],
 		quizId: QuizAttempt['quizId'],
-		userId: QuizAttempt['userId'],
+		courseId: QuizAttempt['courseId'],
+		studentId: QuizAttempt['studentId'],
 		quizQuestions: Quiz['questions'],
 		score: QuizAttempt['score'],
 		userAnswers: string[],
@@ -25,7 +28,8 @@ export default class QuizAttempt {
 	) {
 		this.id = id;
 		this.quizId = quizId;
-		this.userId = userId;
+		this.courseId = courseId;
+		this.studentId = studentId;
 		this.quizQuestions = quizQuestions;
 		this.score = score;
 		this.userAnswers = userAnswers;
@@ -38,8 +42,11 @@ export default class QuizAttempt {
 	private getQuizId() {
 		return this.quizId;
 	}
-	private getUserId() {
-		return this.userId;
+	private getCourseId() {
+		return this.courseId;
+	}
+	private getStudentId() {
+		return this.studentId;
 	}
 	public getQuizQuestions() {
 		return this.quizQuestions;
@@ -68,11 +75,23 @@ export default class QuizAttempt {
 	private setSubmitted(submitted: boolean) {
 		this.submitted = submitted;
 	}
-	public getQuizAttemptViewForStudent() {
-		const questions = this.getQuizQuestions().map(({ content }) => content);
-		return { questions, submitted: this.getSubmitted() };
+	private checkIfUserIsQuizAttemptCreator(user: User) {
+		return this.getStudentId() === user.getId();
 	}
-
+	private checkIfUserIsStudent(user: User) {
+		return user.getCourseId() === this.getCourseId();
+	}
+	private checkIfUserIsInstructor(user: User) {
+		return this.checkIfUserIsStudent(user) && user.getType() === 'instructor';
+	}
+	public getQuizAttemptViewForStudent(user: User) {
+		if (!this.checkIfUserIsQuizAttemptCreator(user) && !this.checkIfUserIsInstructor(user)) {
+			throw new KotlinKhaosAPIError("You don't have access to this quizAttempt", 403);
+		}
+		const questions = this.getQuizQuestions().map(({ content }) => content);
+		const answers = this.getUserAnswers();
+		return { answers, questions, submitted: this.getSubmitted() };
+	}
 	public static async newQuizAttempt(env: Env, user: User, quizId: string) {
 		const quizAttemptId = crypto.randomUUID();
 		const quiz = await Quiz.getQuiz(env, quizId);
@@ -90,7 +109,8 @@ export default class QuizAttempt {
 			quizAttemptId,
 			JSON.stringify({
 				quizId: quiz.getId(),
-				userId: user.getId(),
+				courseId: quiz.getCourseId(),
+				studentId: user.getId(),
 				quizQuestions: quiz.getQuestions(),
 				score,
 				userAnswers,
@@ -101,7 +121,16 @@ export default class QuizAttempt {
 			throw new KotlinKhaosAPIError('Error creating new quizAttempt', 500);
 		});
 
-		return new QuizAttempt(quizAttemptId, quiz.getId(), user.getId(), quiz.getQuestions(), score, userAnswers, submitted);
+		return new QuizAttempt(
+			quizAttemptId,
+			quiz.getId(),
+			quiz.getCourseId(),
+			user.getId(),
+			quiz.getQuestions(),
+			score,
+			userAnswers,
+			submitted
+		);
 	}
 
 	// Load quizAttempt from kv
@@ -121,7 +150,8 @@ export default class QuizAttempt {
 			return new QuizAttempt(
 				quizAttemptId,
 				parsedRes.quizId,
-				parsedRes.userId,
+				parsedRes.courseId,
+				parsedRes.studentId,
 				parsedRes.quizQuestions,
 				parsedRes.score,
 				parsedRes.userAnswers,
@@ -139,7 +169,7 @@ export default class QuizAttempt {
 	private getUserAttemptSnapshot() {
 		return {
 			attemptId: this.getId(),
-			userId: this.getUserId(),
+			studentId: this.getStudentId(),
 			score: this.getScore(),
 		};
 	}
@@ -179,7 +209,7 @@ export default class QuizAttempt {
 		this.setScore(parsedFinalScore.score);
 		this.setSubmitted(true);
 		this.saveStateToKv(env);
-		await Quiz.addFinishedUserAttemptAndSaveState(env, this.getUserAttemptSnapshot(), this.getQuizId(), this.getUserId());
+		await Quiz.addFinishedUserAttemptAndSaveState(env, this.getUserAttemptSnapshot(), this.getQuizId(), this.getStudentId());
 		return { score: this.getScore() };
 	}
 
@@ -193,7 +223,8 @@ export default class QuizAttempt {
 	private toString() {
 		return JSON.stringify({
 			quizId: this.getQuizId(),
-			userId: this.getUserId(),
+			courseId: this.getCourseId(),
+			studentId: this.getStudentId(),
 			quizQuestions: this.getQuizQuestions(),
 			score: this.getScore(),
 			userAnswers: this.getUserAnswers(),

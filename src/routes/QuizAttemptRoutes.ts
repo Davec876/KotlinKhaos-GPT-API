@@ -40,11 +40,11 @@ export class CreateQuizAttemptStudentRoute extends OpenAPIRoute {
 	}
 }
 
-// GET quiz attempt by quizId for a authenticated user
+// GET quiz attempt score by quizId for a authenticated user
 export class GetQuizAttemptStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get quiz attempt by quizId for current user',
+		summary: 'Get quiz attempt score by quizId for current user',
 		parameters: {
 			quizId: Path(Str),
 		},
@@ -65,7 +65,7 @@ export class GetQuizAttemptStudentRoute extends OpenAPIRoute {
 		const user = env.REQ_USER;
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
-		const usersAttempt = quiz.getQuizAttemptViewForStudent(user);
+		const usersAttempt = quiz.getQuizAttemptScoreViewForStudent(user);
 		return usersAttempt;
 	}
 }
@@ -93,9 +93,10 @@ export class GetQuizAttemptByIdStudentRoute extends OpenAPIRoute {
 	};
 
 	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
 		const quizAttemptId = req.params.quizAttemptId;
 		const quizAttempt = await QuizAttempt.getQuizAttempt(env, quizAttemptId);
-		return { quizAttempt: quizAttempt.getQuizAttemptViewForStudent() };
+		return { quizAttempt: quizAttempt.getQuizAttemptViewForStudent(user) };
 	}
 }
 

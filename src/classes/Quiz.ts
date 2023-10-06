@@ -8,7 +8,7 @@ import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 
 interface FinishedUserAttempt {
 	readonly attemptId: QuizAttempt['id'];
-	readonly userId: User['id'];
+	readonly studentId: User['id'];
 	readonly score: string;
 }
 
@@ -111,6 +111,12 @@ export default class Quiz {
 	private addFinishedUserAttempt(userId: string, finishedUserAttempt: FinishedUserAttempt) {
 		this.finishedUserAttempts.set(userId, finishedUserAttempt);
 	}
+	private checkIfUserIsStudent(user: User) {
+		return user.getCourseId() === this.getCourseId();
+	}
+	private checkIfUserIsAuthor(user: User) {
+		return user.getId() === this.getAuthorId();
+	}
 	private checkIfUserFinished(userId: string) {
 		return this.finishedUserAttempts.has(userId);
 	}
@@ -126,11 +132,10 @@ export default class Quiz {
 	private setQuestions(questions: ChatCompletionMessage[]) {
 		this.questions = questions;
 	}
-	public getQuizAttemptViewForStudent(user: User) {
-		if (user.getCourseId() !== this.getCourseId()) {
+	public getQuizAttemptScoreViewForStudent(user: User) {
+		if (!this.checkIfUserIsStudent(user)) {
 			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
 		}
-
 		if (!this.checkIfUserFinished(user.getId()) && this.checkIfUserAttempted(user.getId())) {
 			throw new KotlinKhaosAPIError('User has not finished this quiz', 404);
 		}
@@ -141,7 +146,7 @@ export default class Quiz {
 		return usersAttempt;
 	}
 	public getQuizViewForStudent(user: User) {
-		if (user.getCourseId() !== this.getCourseId()) {
+		if (!this.checkIfUserIsStudent(user)) {
 			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
 		}
 		return {
@@ -152,7 +157,7 @@ export default class Quiz {
 		};
 	}
 	public getQuizViewForInstructor(user: User) {
-		if (user.getId() !== this.getAuthorId()) {
+		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError("Only the quiz author can view this quiz's details", 403);
 		}
 		const startedAttemptsUserIds = [...this.getStartedAttemptsUserIds()];
@@ -274,7 +279,7 @@ export default class Quiz {
 	}
 
 	private validateNextQuestionConditions(user: User) {
-		if (this.getAuthorId() !== user.getId()) {
+		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
 		}
 		if (this.getNumberOfQuestions() >= this.getQuestionLimit()) {
@@ -290,7 +295,7 @@ export default class Quiz {
 	}
 
 	private validateQuizStartConditions(user: User) {
-		if (this.getAuthorId() !== user.getId()) {
+		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
 		}
 		if (this.getNumberOfQuestions() > this.getQuestionLimit()) {
@@ -324,7 +329,7 @@ export default class Quiz {
 	}
 
 	private validateEditQuizQuestionsConditions(user: User, questions: string[]) {
-		if (this.getAuthorId() !== user.getId()) {
+		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
 		}
 		if (this.getStarted()) {
@@ -356,7 +361,7 @@ export default class Quiz {
 	}
 
 	private validateFinishQuizConditions(user: User) {
-		if (this.getAuthorId() !== user.getId()) {
+		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
 		}
 		if (this.getFinished()) {
@@ -369,17 +374,17 @@ export default class Quiz {
 		this.clearStartedAttempts();
 
 		const authorsCourse = await Course.getCourse(env, this.getCourseId());
-		const courseMemberIds = authorsCourse.getUserIds();
+		const studentIds = authorsCourse.getStudentIds();
 
 		// Assign 0 as user's score if user did not finish the quiz
-		courseMemberIds.forEach((courseMemberId) => {
-			if (!this.checkIfUserFinished(courseMemberId)) {
+		studentIds.forEach((studentId) => {
+			if (!this.checkIfUserFinished(studentId)) {
 				const finishedUserAttempt: FinishedUserAttempt = {
 					attemptId: '',
-					userId: courseMemberId,
+					studentId,
 					score: '0',
 				};
-				this.addFinishedUserAttempt(courseMemberId, finishedUserAttempt);
+				this.addFinishedUserAttempt(studentId, finishedUserAttempt);
 			}
 		});
 

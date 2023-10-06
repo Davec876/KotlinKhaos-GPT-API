@@ -72,8 +72,11 @@ export default class PracticeQuiz {
 	public getLatestContent() {
 		return this.history[this.history.length - 1].content;
 	}
+	private checkIfUserIsQuizCreator(user: User) {
+		return this.getUserId() === user.getId();
+	}
 	public getPracticeViewForStudent(user: User) {
-		if (this.getUserId() !== user.getId()) {
+		if (!this.checkIfUserIsQuizCreator(user)) {
 			throw new KotlinKhaosAPIError("You don't have access to this practiceQuiz", 403);
 		}
 		if (this.isFinished()) {
@@ -170,7 +173,7 @@ export default class PracticeQuiz {
 	}
 
 	public async continue(env: Env, user: User) {
-		if (this.getUserId() !== user.getId()) {
+		if (!this.checkIfUserIsQuizCreator(user)) {
 			throw new KotlinKhaosAPIError("You don't have access to this practiceQuiz", 403);
 		}
 		// Finished conversation
@@ -194,7 +197,7 @@ export default class PracticeQuiz {
 	}
 
 	private validateFeedbackConditions(user: User, userAnswer: string) {
-		if (this.getUserId() !== user.getId()) {
+		if (!this.checkIfUserIsQuizCreator(user)) {
 			throw new KotlinKhaosAPIError("You don't have access to this practiceQuiz", 403);
 		}
 		if (!userAnswer) {
