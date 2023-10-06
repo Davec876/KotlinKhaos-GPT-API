@@ -23,11 +23,21 @@ export async function verifyToken(token: string, ctx: ExecutionContext): Promise
 	});
 }
 
-export async function getDebugToken(env: Env) {
-	// Generate debug token if no token supplied and in debug mode
+export async function getDebugUserToken(env: Env) {
+	// Generate debug user token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'E5Ptdo8YRnSFOO1tKk502ksP2322',
+		uid: 'rkIyTsb1avUYH5QYmIArZbxqQgE2',
+		apiKey: env.FIREBASE_API_KEY,
+	});
+	return tokenRes.idToken as string;
+}
+
+export async function getDebugInstructorToken(env: Env) {
+	// Generate debug instructor token if no token supplied and in debug mode
+	const tokenRes = await getIdToken({
+		credentials: JSON.stringify(firebaseSecret),
+		uid: 'qUVYul1QVCY3GV4aGbykkafLDSv2',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;

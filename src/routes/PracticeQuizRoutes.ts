@@ -48,7 +48,6 @@ export class CreatePracticeQuizRoute extends OpenAPIRoute {
 		}
 
 		const practiceQuiz = await PracticeQuiz.newQuiz(env, user, prompt);
-
 		return { problem: practiceQuiz.getLatestContent(), practiceQuizId: practiceQuiz.getId() };
 	}
 }
@@ -73,10 +72,10 @@ export class GetPracticeQuizRoute extends OpenAPIRoute {
 	};
 
 	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
 		const practiceQuizId = req.params.practiceQuizId;
 		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
-
-		return { message: practiceQuiz.getLatestContent() };
+		return { message: practiceQuiz.getPracticeViewForStudent(user) };
 	}
 }
 
@@ -104,13 +103,14 @@ export class GivePracticeQuizFeedbackRoute extends OpenAPIRoute {
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 	async handle(req: IRequest, env: Env, ctx: ExecutionContext, context: any) {
+		const user = env.REQ_USER;
 		const practiceQuizId = req.params.practiceQuizId;
 
 		// TODO: Add typeguard later
 		const userAnswer: string = context.body.answer;
 
 		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
-		const message = await practiceQuiz.giveFeedback(env, userAnswer);
+		const message = await practiceQuiz.giveFeedback(env, user, userAnswer);
 
 		return { message };
 	}
@@ -136,10 +136,11 @@ export class ContinuePracticeQuizRoute extends OpenAPIRoute {
 	};
 
 	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
 		const practiceQuizId = req.params.practiceQuizId;
 
 		const practiceQuiz = await PracticeQuiz.getQuiz(env, practiceQuizId);
-		const message = await practiceQuiz.continue(env);
+		const message = await practiceQuiz.continue(env, user);
 		return { message };
 	}
 }

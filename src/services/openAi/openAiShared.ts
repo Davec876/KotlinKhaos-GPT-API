@@ -31,7 +31,7 @@ export function getStartingMessage(savedUsersCourseInfo: CourseInfoSnapshotForQu
 		},
 		{
 			content: `With a particular focus on ${prompt}`,
-			role: 'user',
+			role: 'system',
 		},
 	];
 }

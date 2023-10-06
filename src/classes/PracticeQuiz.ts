@@ -72,6 +72,20 @@ export default class PracticeQuiz {
 	public getLatestContent() {
 		return this.history[this.history.length - 1].content;
 	}
+	public getPracticeViewForStudent(user: User) {
+		if (this.getUserId() !== user.getId()) {
+			throw new KotlinKhaosAPIError("You don't have access to this practiceQuiz", 403);
+		}
+		if (this.isFinished()) {
+			// Validate finalScore
+			const parsedFinalScore = parseFinalScore(this.getLatestContent());
+			if (!parsedFinalScore) {
+				throw new KotlinKhaosAPIError('Error parsing final score for practiceQuiz', 500);
+			}
+			return parsedFinalScore;
+		}
+		return this.getLatestContent();
+	}
 	private async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage[]) {
 		this.setState(state);
 		this.history = this.history.concat(message);
@@ -155,7 +169,10 @@ export default class PracticeQuiz {
 		}
 	}
 
-	public async continue(env: Env) {
+	public async continue(env: Env, user: User) {
+		if (this.getUserId() !== user.getId()) {
+			throw new KotlinKhaosAPIError("You don't have access to this practiceQuiz", 403);
+		}
 		// Finished conversation
 		if (this.isFinished()) {
 			throw new KotlinKhaosAPIError('Cannot continue, quiz has finished', 400);
@@ -176,7 +193,10 @@ export default class PracticeQuiz {
 		return this.getLatestContent();
 	}
 
-	private validateFeedbackConditions(userAnswer: string) {
+	private validateFeedbackConditions(user: User, userAnswer: string) {
+		if (this.getUserId() !== user.getId()) {
+			throw new KotlinKhaosAPIError("You don't have access to this practiceQuiz", 403);
+		}
 		if (!userAnswer) {
 			throw new KotlinKhaosAPIError('No answer specified!', 400);
 		}
@@ -194,8 +214,8 @@ export default class PracticeQuiz {
 		}
 	}
 
-	public async giveFeedback(env: Env, userAnswer: string) {
-		this.validateFeedbackConditions(userAnswer);
+	public async giveFeedback(env: Env, user: User, userAnswer: string) {
+		this.validateFeedbackConditions(user, userAnswer);
 
 		const { newState, messages } = await giveFeedbackToConversation(this, userAnswer, env);
 		this.appendMessagesToHistory(env, newState, messages);
@@ -203,7 +223,7 @@ export default class PracticeQuiz {
 		return this.getLatestContent();
 	}
 
-	public async getFinalScore(env: Env) {
+	private async getFinalScore(env: Env) {
 		const { newState, finalScore } = await giveFinalScoreFromConversation(this, env);
 		this.appendMessageToHistory(env, newState, finalScore);
 

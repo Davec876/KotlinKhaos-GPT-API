@@ -1,6 +1,6 @@
 import { type IRequest, error } from 'itty-router';
 import type { Env } from '../index';
-import { getDebugToken, verifyToken } from '../services/firebase';
+import { getDebugUserToken, getDebugInstructorToken, verifyToken } from '../services/firebase';
 import User from '../classes/User';
 
 function getBearer(req: IRequest): null | string {
@@ -15,17 +15,22 @@ export async function authRoute(req: IRequest, env: Env, ctx: ExecutionContext) 
 	try {
 		const bearer = getBearer(req);
 
-		if (bearer) {
+		if (bearer && bearer !== 'debugStudent' && bearer !== 'debugInstructor') {
 			const userToken = await verifyToken(bearer, ctx);
 			env.REQ_USER = await User.getUserFromToken(env, userToken);
 			return;
 		}
 
 		// env.DEBUG is expected to be a string
-		if (env.DEBUG === 'true') {
-			// Generate debug token if no token supplied and in debug mode
-			const debugToken = await getDebugToken(env);
-			return { debugIdToken: debugToken };
+		if (bearer === 'debugStudent' || (bearer !== 'debugInstructor' && env.DEBUG === 'student')) {
+			// Generate debug token if bearer is debug or no token supplied and in debug mode
+			const debugStudentIdToken = await getDebugUserToken(env);
+			return { debugStudentIdToken };
+		}
+
+		if (bearer === 'debugInstructor' || env.DEBUG === 'instructor') {
+			const debugInstructorIdToken = await getDebugInstructorToken(env);
+			return { debugInstructorIdToken };
 		}
 
 		return error(401, 'Authorization required');
