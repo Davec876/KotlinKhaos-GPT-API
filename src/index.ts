@@ -22,8 +22,18 @@ import {
 	GetPracticeQuizRoute,
 	GivePracticeQuizFeedbackRoute,
 } from './routes/PracticeQuizRoutes';
-import { CreateQuizRoute, GetQuizRoute, NextQuizQuestionRoute, StartQuizRoute } from './routes/QuizRoutes';
-import { CreateQuizAttemptRoute, GetQuizAttemptRoute, SubmitQuizAttemptRoute } from './routes/QuizAttemptRoutes';
+import {
+	CreateQuizInstructorRoute,
+	NextQuizQuestionInstructorRoute,
+	StartQuizInstructorRoute,
+	GetQuizStudentRoute,
+} from './routes/QuizRoutes';
+import {
+	CreateQuizAttemptStudentRoute,
+	GetQuizAttemptByIdStudentRoute,
+	GetQuizAttemptStudentRoute,
+	SubmitQuizAttemptStudentRoute,
+} from './routes/QuizAttemptRoutes';
 import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
@@ -85,25 +95,28 @@ router
 	.post('/practice-quizs/:practiceQuizId/continue', ContinuePracticeQuizRoute)
 
 	// POST GPT create a new quiz
-	.post('/quizs/', CreateQuizRoute)
-
-	// GET GPT quiz by Id
-	.get('/quizs/:quizId', GetQuizRoute)
+	.post('/instructor/quizs/', CreateQuizInstructorRoute)
 
 	// POST GPT get the next quiz question
-	.post('/quizs/:quizId/next-question', NextQuizQuestionRoute)
+	.post('/instructor/quizs/:quizId/next-question', NextQuizQuestionInstructorRoute)
 
 	// POST GPT start the quiz
-	.post('/quizs/:quizId/start', StartQuizRoute)
+	.post('/instructor/quizs/:quizId/start', StartQuizInstructorRoute)
+
+	// GET GPT quiz by Id for student
+	.get('/student/quizs/:quizId', GetQuizStudentRoute)
 
 	// POST GPT create a new quiz attempt
-	.post('/quizs/:quizId/attempt', CreateQuizAttemptRoute)
+	.post('/student/quizs/:quizId/attempt', CreateQuizAttemptStudentRoute)
+
+	// GET quiz attempt by quizId for a authenticated user
+	.get('/student/quizs/:quizId/attempt', GetQuizAttemptStudentRoute)
 
 	// GET GPT quizAttempt by Id
-	.get('/quiz-attempts/:quizAttemptId', GetQuizAttemptRoute)
+	.get('/student/quiz-attempts/:quizAttemptId', GetQuizAttemptByIdStudentRoute)
 
 	// POST GPT submit quiz attempt
-	.post('/quiz-attempts/:quizAttemptId/submit', SubmitQuizAttemptRoute)
+	.post('/student/quiz-attempts/:quizAttemptId/submit', SubmitQuizAttemptStudentRoute)
 
 	// 404 for everything else
 	.all('*', () => error(404));

@@ -3,9 +3,11 @@ import { createNewQuiz, getNextQuestion } from '../services/openAi/openAiQuiz';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
+import type QuizAttempt from './QuizAttempt';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 
 interface FinishedUserAttempt {
+	readonly attemptId: QuizAttempt['id'];
 	readonly userId: User['id'];
 	readonly score: string;
 }
@@ -64,7 +66,7 @@ export default class Quiz {
 	private getAuthorId() {
 		return this.authorId;
 	}
-	private getCourseId() {
+	public getCourseId() {
 		return this.courseId;
 	}
 	public getSavedAuthorsCourseInfo() {
@@ -109,7 +111,24 @@ export default class Quiz {
 		}
 		return false;
 	}
+	public getQuizAttemptViewForStudent(user: User) {
+		if (user.getCourseId() !== this.getCourseId()) {
+			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
+		}
+
+		const usersAttempt = this.getFinishedUserAttempts().find(({ userId }) => userId === user.getId());
+		if (!usersAttempt && this.checkIfUserAttempted(user.getId())) {
+			throw new KotlinKhaosAPIError('User has not finished this quiz', 404);
+		}
+		if (!usersAttempt) {
+			throw new KotlinKhaosAPIError('User has not attempted this quiz', 404);
+		}
+		return usersAttempt;
+	}
 	public getQuizViewForStudent(user: User) {
+		if (user.getCourseId() !== this.getCourseId()) {
+			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
+		}
 		return {
 			name: this.getName(),
 			started: this.getStarted(),
@@ -121,7 +140,11 @@ export default class Quiz {
 		this.questions.push(question);
 	}
 
-	private static validateNewQuizOptions(quizOptions: QuizOptions) {
+	private static validateNewQuizConditions(quizOptions: QuizOptions, user: User) {
+		if (user.getType() !== 'instructor') {
+			throw new KotlinKhaosAPIError('Only instructors may create classes', 403);
+		}
+
 		if (quizOptions.prompt.length > 20) {
 			throw new KotlinKhaosAPIError('Prompt is too long', 400);
 		}
@@ -131,7 +154,7 @@ export default class Quiz {
 		}
 	}
 	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
-		this.validateNewQuizOptions(quizOptions);
+		this.validateNewQuizConditions(quizOptions, author);
 		const quizId = crypto.randomUUID();
 		const authorsCourse = await Course.getCourse(env, author.getCourseId());
 		const authorsCourseInfo = authorsCourse.getCourseInfoSnapshotForQuiz();
@@ -216,18 +239,26 @@ export default class Quiz {
 		}
 	}
 
-	public async nextQuestion(env: Env) {
+	private validateNextQuestionConditions(user: User) {
+		if (this.getAuthorId() !== user.getId()) {
+			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
+		}
 		if (this.getNumberOfQuestions() >= this.getQuestionLimit()) {
 			throw new KotlinKhaosAPIError("You've reached the quiz's question limit", 400);
 		}
-
+	}
+	public async nextQuestion(env: Env, user: User) {
+		this.validateNextQuestionConditions(user);
 		const nextQuestion = await getNextQuestion(this, env);
 		this.addQuestion(nextQuestion);
 		await this.saveStateToKv(env);
 		return nextQuestion.content;
 	}
 
-	private validateQuizStartConditions() {
+	private validateQuizStartConditions(user: User) {
+		if (this.getAuthorId() !== user.getId()) {
+			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
+		}
 		if (this.getNumberOfQuestions() > this.getQuestionLimit()) {
 			throw new KotlinKhaosAPIError("You've exceeded the question limit for the quiz", 400);
 		}
@@ -240,8 +271,8 @@ export default class Quiz {
 		}
 	}
 
-	public async startQuiz(env: Env) {
-		this.validateQuizStartConditions();
+	public async startQuiz(env: Env, user: User) {
+		this.validateQuizStartConditions(user);
 		this.started = true;
 		await this.saveStateToKv(env);
 		return true;

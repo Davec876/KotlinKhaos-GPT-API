@@ -54,8 +54,8 @@ export async function continueConversation(practiceQuiz: PracticeQuiz, env: Env)
 		max_tokens: 50,
 	});
 	const nextQuestion = completion.choices[0].message;
-	const newState = 'awaitingUserResponse';
-	return { newState: newState as 'awaitingUserResponse', nextQuestion };
+	const newState = 'awaitingUserResponse' as const;
+	return { newState, nextQuestion };
 }
 
 export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, userAnswer: string, env: Env) {
@@ -75,8 +75,8 @@ export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, use
 
 	// Combine user message and feedback from GPT
 	const messages = [userMessage, feedback];
-	const newState = 'assistantResponded';
-	return { newState: newState as 'assistantResponded', messages };
+	const newState = 'assistantResponded' as const;
+	return { newState, messages };
 }
 
 export async function giveFinalScoreFromConversation(practiceQuiz: PracticeQuiz, env: Env) {
@@ -89,6 +89,6 @@ export async function giveFinalScoreFromConversation(practiceQuiz: PracticeQuiz,
 		max_tokens: 50,
 	});
 	const finalScore = completion.choices[0].message;
-	const newState = 'completed';
-	return { newState: newState as 'completed', finalScore };
+	const newState = 'completed' as const;
+	return { newState, finalScore };
 }

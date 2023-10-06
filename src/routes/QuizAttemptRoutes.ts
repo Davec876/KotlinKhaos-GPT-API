@@ -2,6 +2,7 @@ import { Bool, OpenAPIRoute, Path, Str } from '@cloudflare/itty-router-openapi';
 import { type IRequest } from 'itty-router';
 import type { Env } from '../index';
 import QuizAttempt from '../classes/QuizAttempt';
+import Quiz from '../classes/Quiz';
 
 const error404Schema = {
 	schema: {
@@ -13,7 +14,7 @@ const error404Schema = {
 const routeTag = ['QuizAttempt'];
 
 // POST GPT create a new quiz attempt
-export class CreateQuizAttemptRoute extends OpenAPIRoute {
+export class CreateQuizAttemptStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
 		summary: 'Create a quiz attempt',
@@ -39,8 +40,38 @@ export class CreateQuizAttemptRoute extends OpenAPIRoute {
 	}
 }
 
+// GET quiz attempt by quizId for a authenticated user
+export class GetQuizAttemptStudentRoute extends OpenAPIRoute {
+	static schema = {
+		tags: routeTag,
+		summary: 'Get quiz attempt by quizId for current user',
+		parameters: {
+			quizId: Path(Str),
+		},
+		responses: {
+			'200': {
+				schema: {
+					attemptId: Str,
+					userId: Str,
+					score: Str,
+				},
+				description: 'Successfull response',
+			},
+			'404': error404Schema,
+		},
+	};
+
+	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
+		const quizId = req.params.quizId;
+		const quiz = await Quiz.getQuiz(env, quizId);
+		const usersAttempt = quiz.getQuizAttemptViewForStudent(user);
+		return usersAttempt;
+	}
+}
+
 // GET GPT quizAttempt by Id
-export class GetQuizAttemptRoute extends OpenAPIRoute {
+export class GetQuizAttemptByIdStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
 		summary: 'Get quiz attempt by Id',
@@ -69,7 +100,7 @@ export class GetQuizAttemptRoute extends OpenAPIRoute {
 }
 
 // POST GPT submit quiz attempt
-export class SubmitQuizAttemptRoute extends OpenAPIRoute {
+export class SubmitQuizAttemptStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
 		summary: 'Submit a quiz Attempt',

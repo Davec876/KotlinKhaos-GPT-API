@@ -77,6 +77,10 @@ export default class QuizAttempt {
 		const quizAttemptId = crypto.randomUUID();
 		const quiz = await Quiz.getQuiz(env, quizId);
 
+		if (user.getCourseId() !== quiz.getCourseId()) {
+			throw new KotlinKhaosAPIError("Only students of this quiz's course may attempt this quiz", 403);
+		}
+
 		const score = '';
 		const userAnswers: string[] = [];
 		const submitted = false;
@@ -134,6 +138,7 @@ export default class QuizAttempt {
 
 	private getUserAttemptSnapshot() {
 		return {
+			attemptId: this.getId(),
 			userId: this.getUserId(),
 			score: this.getScore(),
 		};

@@ -13,7 +13,7 @@ const error404Schema = {
 const routeTag = ['Quiz'];
 
 // POST GPT create a new quiz
-export class CreateQuizRoute extends OpenAPIRoute {
+export class CreateQuizInstructorRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
 		summary: 'Create a quiz',
@@ -45,8 +45,64 @@ export class CreateQuizRoute extends OpenAPIRoute {
 	}
 }
 
+// POST GPT get the next quiz question
+export class NextQuizQuestionInstructorRoute extends OpenAPIRoute {
+	static schema = {
+		tags: routeTag,
+		summary: 'Get the next quiz question',
+		parameters: {
+			quizId: Path(Str),
+		},
+		responses: {
+			'200': {
+				schema: {
+					question: Str,
+				},
+				description: 'Successfull response',
+			},
+			'404': error404Schema,
+		},
+	};
+
+	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
+		const quizId = req.params.quizId;
+		const quiz = await Quiz.getQuiz(env, quizId);
+		const question = await quiz.nextQuestion(env, user);
+		return { question };
+	}
+}
+
+// POST GPT start the quiz
+export class StartQuizInstructorRoute extends OpenAPIRoute {
+	static schema = {
+		tags: routeTag,
+		summary: 'Start a quiz',
+		parameters: {
+			quizId: Path(Str),
+		},
+		responses: {
+			'200': {
+				schema: {
+					success: Bool,
+				},
+				description: 'Successfull response',
+			},
+			'404': error404Schema,
+		},
+	};
+
+	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
+		const quizId = req.params.quizId;
+		const quiz = await Quiz.getQuiz(env, quizId);
+		const success = await quiz.startQuiz(env, user);
+		return { success };
+	}
+}
+
 // GET GPT quiz by Id
-export class GetQuizRoute extends OpenAPIRoute {
+export class GetQuizStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
 		summary: 'Get quiz by Id',
@@ -73,59 +129,5 @@ export class GetQuizRoute extends OpenAPIRoute {
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
 		return { quiz: quiz.getQuizViewForStudent(student) };
-	}
-}
-
-// POST GPT get the next quiz question
-export class NextQuizQuestionRoute extends OpenAPIRoute {
-	static schema = {
-		tags: routeTag,
-		summary: 'Get the next quiz question',
-		parameters: {
-			quizId: Path(Str),
-		},
-		responses: {
-			'200': {
-				schema: {
-					question: Str,
-				},
-				description: 'Successfull response',
-			},
-			'404': error404Schema,
-		},
-	};
-
-	async handle(req: IRequest, env: Env) {
-		const quizId = req.params.quizId;
-		const quiz = await Quiz.getQuiz(env, quizId);
-		const question = await quiz.nextQuestion(env);
-		return { question };
-	}
-}
-
-// POST GPT start the quiz
-export class StartQuizRoute extends OpenAPIRoute {
-	static schema = {
-		tags: routeTag,
-		summary: 'Start a quiz',
-		parameters: {
-			quizId: Path(Str),
-		},
-		responses: {
-			'200': {
-				schema: {
-					success: Bool,
-				},
-				description: 'Successfull response',
-			},
-			'404': error404Schema,
-		},
-	};
-
-	async handle(req: IRequest, env: Env) {
-		const quizId = req.params.quizId;
-		const quiz = await Quiz.getQuiz(env, quizId);
-		const success = await quiz.startQuiz(env);
-		return { success };
 	}
 }

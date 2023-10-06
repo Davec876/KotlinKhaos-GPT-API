@@ -7,11 +7,13 @@ export default class User {
 	private readonly id: string;
 	private readonly courseId: Course['id'];
 	private readonly name: string;
+	private readonly type: 'student' | 'instructor';
 
-	private constructor(id: User['id'], courseId: User['courseId'], name: User['name']) {
+	private constructor(id: User['id'], courseId: User['courseId'], name: User['name'], type: User['type']) {
 		this.id = id;
 		this.courseId = courseId;
 		this.name = name;
+		this.type = type;
 	}
 
 	public getId() {
@@ -22,6 +24,9 @@ export default class User {
 	}
 	private getName() {
 		return this.name;
+	}
+	public getType() {
+		return this.type;
 	}
 
 	public static async getUserFromToken(env: Env, userToken: FirebaseUserToken) {
@@ -36,11 +41,12 @@ export default class User {
 		const fakeUserRes = {
 			courseId: '1',
 			name: '',
+			type: 'student' as const,
 		};
 
 		const name = userToken.name ?? fakeUserRes.name;
 
-		return new User(userToken.user_id, fakeUserRes.courseId, name);
+		return new User(userToken.user_id, fakeUserRes.courseId, name, fakeUserRes.type);
 	}
 
 	// Load user from firebase db
@@ -56,8 +62,9 @@ export default class User {
 		const fakeUserRes = {
 			courseId: '1',
 			name: 'Test User',
+			type: 'student' as const,
 		};
 
-		return new User(userId, fakeUserRes.courseId, fakeUserRes.name);
+		return new User(userId, fakeUserRes.courseId, fakeUserRes.name, fakeUserRes.type);
 	}
 }
