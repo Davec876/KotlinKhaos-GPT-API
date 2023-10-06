@@ -10,6 +10,7 @@ interface FinishedUserAttempt {
 	readonly attemptId: QuizAttempt['id'];
 	readonly studentId: User['id'];
 	readonly score: string;
+	readonly submittedOn: Date;
 }
 
 export interface QuizOptions {
@@ -28,9 +29,9 @@ export default class Quiz {
 	private name: string;
 	private startedAttemptsUserIds: Set<User['id']>;
 	private finishedUserAttempts: Map<User['id'], FinishedUserAttempt>;
-	private started: boolean;
-	private finished: boolean;
 	private questions: ChatCompletionMessage[];
+	private startedAt?: Date;
+	private finishedAt?: Date;
 
 	private constructor(
 		id: Quiz['id'],
@@ -42,9 +43,9 @@ export default class Quiz {
 		name: Quiz['name'],
 		startedAttemptsUserIds: Quiz['startedAttemptsUserIds'],
 		finishedUserAttempts: Quiz['finishedUserAttempts'],
-		started: Quiz['started'],
-		finished: Quiz['finished'],
-		questions: Quiz['questions']
+		questions: Quiz['questions'],
+		startedAt?: Date,
+		finishedAt?: Date
 	) {
 		this.id = id;
 		this.authorId = authorId;
@@ -55,9 +56,9 @@ export default class Quiz {
 		this.name = name;
 		this.startedAttemptsUserIds = startedAttemptsUserIds;
 		this.finishedUserAttempts = finishedUserAttempts;
-		this.started = started;
-		this.finished = finished;
 		this.questions = questions;
+		this.startedAt = startedAt;
+		this.finishedAt = finishedAt;
 	}
 
 	public getId() {
@@ -87,11 +88,17 @@ export default class Quiz {
 	private getFinishedUserAttempts() {
 		return this.finishedUserAttempts;
 	}
-	public getStarted() {
-		return this.started;
+	private getStartedAt() {
+		return this.startedAt;
 	}
-	private getFinished() {
-		return this.finished;
+	private getFinishedAt() {
+		return this.finishedAt;
+	}
+	private isStarted() {
+		return !!this.getStartedAt();
+	}
+	private isFinished() {
+		return !!this.getFinishedAt();
 	}
 	public getQuestions() {
 		return this.questions;
@@ -103,9 +110,6 @@ export default class Quiz {
 		this.startedAttemptsUserIds = new Set();
 	}
 	private addStartedAttemptUserId(userId: string) {
-		if (this.checkIfUserAttempted(userId)) {
-			throw new KotlinKhaosAPIError('This user has already attempted this quiz', 400);
-		}
 		this.startedAttemptsUserIds.add(userId);
 	}
 	private addFinishedUserAttempt(userId: string, finishedUserAttempt: FinishedUserAttempt) {
@@ -123,11 +127,11 @@ export default class Quiz {
 	private checkIfUserAttempted(userId: string) {
 		return this.startedAttemptsUserIds.has(userId) || this.finishedUserAttempts.has(userId);
 	}
-	private setStarted(started: boolean) {
-		this.started = started;
+	private setStartedAt(startedAt: Date) {
+		this.startedAt = startedAt;
 	}
-	private setFinished(finished: boolean) {
-		this.finished = finished;
+	private setFinishedAt(finishedAt: Date) {
+		this.finishedAt = finishedAt;
 	}
 	private setQuestions(questions: ChatCompletionMessage[]) {
 		this.questions = questions;
@@ -151,8 +155,8 @@ export default class Quiz {
 		}
 		return {
 			name: this.getName(),
-			started: this.getStarted(),
-			finished: this.getFinished(),
+			started: this.isStarted(),
+			finished: this.isFinished(),
 			userAttempted: this.checkIfUserAttempted(user.getId()),
 		};
 	}
@@ -164,8 +168,8 @@ export default class Quiz {
 		const finishedUserAttempts = Object.fromEntries(this.getFinishedUserAttempts().entries());
 		return {
 			name: this.getName(),
-			started: this.getStarted(),
-			finished: this.getFinished(),
+			started: this.isStarted(),
+			finished: this.isFinished(),
 			questions: this.getQuestions(),
 			startedAttemptsUserIds,
 			finishedUserAttempts,
@@ -174,7 +178,6 @@ export default class Quiz {
 	private async addQuestion(question: ChatCompletionMessage) {
 		this.questions.push(question);
 	}
-
 	private static validateNewQuizConditions(quizOptions: QuizOptions, user: User) {
 		if (user.getType() !== 'instructor') {
 			throw new KotlinKhaosAPIError('Only instructors may create classes', 403);
@@ -195,8 +198,8 @@ export default class Quiz {
 		const authorsCourseInfo = authorsCourse.getCourseInfoSnapshotForQuiz();
 		const startedAttemptsUserIds: Set<string> = new Set();
 		const finishedUserAttempts: Map<string, FinishedUserAttempt> = new Map();
-		const started = false;
-		const finished = false;
+		const startedAt = undefined;
+		const finishedAt = undefined;
 
 		const question = await createNewQuiz(env, authorsCourse, quizOptions.prompt);
 		const questions = [question];
@@ -212,8 +215,8 @@ export default class Quiz {
 				name: quizOptions.name,
 				startedAttemptsUserIds: [...startedAttemptsUserIds],
 				finishedUserAttempts: Object.fromEntries(finishedUserAttempts.entries()),
-				started,
-				finished,
+				startedAt,
+				finishedAt,
 				questions,
 			})
 		).catch((err) => {
@@ -231,9 +234,9 @@ export default class Quiz {
 			quizOptions.name,
 			startedAttemptsUserIds,
 			finishedUserAttempts,
-			started,
-			finished,
-			questions
+			questions,
+			startedAt,
+			finishedAt
 		);
 	}
 
@@ -254,6 +257,14 @@ export default class Quiz {
 			// Convert back to Set and Map
 			const startedAttemptsUserIds: Set<User['id']> = new Set(parsedRes.startedAttemptsUserIds);
 			const finishedUserAttempts: Map<User['id'], FinishedUserAttempt> = new Map(Object.entries(parsedRes.finishedUserAttempts));
+			// Parse date from map
+			finishedUserAttempts.forEach((userAttempt) => {
+				(userAttempt.submittedOn as Date) = new Date(userAttempt.submittedOn);
+			});
+
+			// Parsed Date
+			const startedAt = parsedRes.startedAt ? new Date(parsedRes.startedAt) : undefined;
+			const finishedAt = parsedRes.finishedAt ? new Date(parsedRes.finishedAt) : undefined;
 
 			return new Quiz(
 				quizId,
@@ -265,9 +276,9 @@ export default class Quiz {
 				parsedRes.name,
 				startedAttemptsUserIds,
 				finishedUserAttempts,
-				parsedRes.started,
-				parsedRes.finished,
-				parsedRes.questions
+				parsedRes.questions,
+				startedAt,
+				finishedAt
 			);
 		} catch (err) {
 			if (err instanceof SyntaxError) {
@@ -305,19 +316,26 @@ export default class Quiz {
 			const diff = this.getQuestionLimit() - this.getNumberOfQuestions();
 			throw new KotlinKhaosAPIError(`You're missing questions from your quiz, add ${diff} more`, 400);
 		}
-		if (this.getStarted()) {
+		if (this.isStarted()) {
 			throw new KotlinKhaosAPIError('Quiz has already started', 400);
 		}
 	}
 
 	public async startQuiz(env: Env, user: User) {
 		this.validateQuizStartConditions(user);
-		this.setStarted(true);
+		const startedAtTime = new Date();
+		this.setStartedAt(startedAtTime);
 		await this.saveStateToKv(env);
 		return true;
 	}
 
 	public async addStartedAttemptUserIdAndSaveState(env: Env, userId: string) {
+		if (!this.isStarted()) {
+			throw new KotlinKhaosAPIError('Quiz has not started', 400);
+		}
+		if (this.checkIfUserAttempted(userId)) {
+			throw new KotlinKhaosAPIError('This user has already attempted this quiz', 400);
+		}
 		this.addStartedAttemptUserId(userId);
 		await this.saveStateToKv(env);
 	}
@@ -332,7 +350,7 @@ export default class Quiz {
 		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
 		}
-		if (this.getStarted()) {
+		if (this.isStarted()) {
 			throw new KotlinKhaosAPIError('You cannot edit questions once the quiz is in progress', 400);
 		}
 		if (questions.length > this.getQuestionLimit()) {
@@ -364,7 +382,7 @@ export default class Quiz {
 		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
 		}
-		if (this.getFinished()) {
+		if (this.isFinished()) {
 			throw new KotlinKhaosAPIError('This quiz has already finished', 400);
 		}
 	}
@@ -383,12 +401,14 @@ export default class Quiz {
 					attemptId: '',
 					studentId,
 					score: '0',
+					submittedOn: new Date(),
 				};
 				this.addFinishedUserAttempt(studentId, finishedUserAttempt);
 			}
 		});
 
-		this.setFinished(true);
+		const finishedAtTime = new Date();
+		this.setFinishedAt(finishedAtTime);
 		await this.saveStateToKv(env);
 	}
 
@@ -409,8 +429,8 @@ export default class Quiz {
 			name: this.getName(),
 			startedAttemptsUserIds: [...this.getStartedAttemptsUserIds()],
 			finishedUserAttempts: Object.fromEntries(this.getFinishedUserAttempts().entries()),
-			started: this.getStarted(),
-			finished: this.getFinished(),
+			startedAt: this.getStartedAt(),
+			finishedAt: this.getFinishedAt(),
 			questions: this.getQuestions(),
 		});
 	}

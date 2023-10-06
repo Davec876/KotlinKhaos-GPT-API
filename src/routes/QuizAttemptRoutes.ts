@@ -54,6 +54,7 @@ export class GetQuizAttemptStudentRoute extends OpenAPIRoute {
 					attemptId: Str,
 					userId: Str,
 					score: Str,
+					submittedOn: Date,
 				},
 				description: 'Successfull response',
 			},
@@ -82,6 +83,7 @@ export class GetQuizAttemptByIdStudentRoute extends OpenAPIRoute {
 			'200': {
 				schema: {
 					quizAttempt: {
+						answers: [Str],
 						questions: [Str],
 						submitted: Bool,
 					},
@@ -104,12 +106,12 @@ export class GetQuizAttemptByIdStudentRoute extends OpenAPIRoute {
 export class SubmitQuizAttemptStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Submit a quiz Attempt',
+		summary: 'Submit a quiz attempt',
 		parameters: {
 			quizAttemptId: Path(Str),
 		},
 		requestBody: {
-			answers: ['Your answer here', 'Your answer here #2', 'Your answer here #3'],
+			answers: ['Your answers here'],
 		},
 		responses: {
 			'200': {

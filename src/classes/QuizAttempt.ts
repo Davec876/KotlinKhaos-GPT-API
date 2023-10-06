@@ -14,7 +14,7 @@ export default class QuizAttempt {
 	private readonly quizQuestions: Quiz['questions'];
 	private score: string;
 	private userAnswers: string[];
-	private submitted: boolean;
+	private submittedOn?: Date;
 
 	private constructor(
 		id: QuizAttempt['id'],
@@ -24,7 +24,7 @@ export default class QuizAttempt {
 		quizQuestions: Quiz['questions'],
 		score: QuizAttempt['score'],
 		userAnswers: string[],
-		submitted: QuizAttempt['submitted']
+		submittedOn?: QuizAttempt['submittedOn']
 	) {
 		this.id = id;
 		this.quizId = quizId;
@@ -33,7 +33,7 @@ export default class QuizAttempt {
 		this.quizQuestions = quizQuestions;
 		this.score = score;
 		this.userAnswers = userAnswers;
-		this.submitted = submitted;
+		this.submittedOn = submittedOn;
 	}
 
 	public getId() {
@@ -57,8 +57,11 @@ export default class QuizAttempt {
 	public getUserAnswers() {
 		return this.userAnswers;
 	}
-	private getSubmitted() {
-		return this.submitted;
+	private getSubmittedOn() {
+		return this.submittedOn;
+	}
+	private isSubmitted() {
+		return !!this.getSubmittedOn();
 	}
 	public getNumberOfQuestions() {
 		return this.quizQuestions.length;
@@ -72,8 +75,8 @@ export default class QuizAttempt {
 	private setUserAnswers(userAnswers: string[]) {
 		this.userAnswers = userAnswers;
 	}
-	private setSubmitted(submitted: boolean) {
-		this.submitted = submitted;
+	private setSubmittedOn(submittedOn: Date) {
+		this.submittedOn = submittedOn;
 	}
 	private checkIfUserIsQuizAttemptCreator(user: User) {
 		return this.getStudentId() === user.getId();
@@ -90,7 +93,7 @@ export default class QuizAttempt {
 		}
 		const questions = this.getQuizQuestions().map(({ content }) => content);
 		const answers = this.getUserAnswers();
-		return { answers, questions, submitted: this.getSubmitted() };
+		return { answers, questions, submitted: this.isSubmitted() };
 	}
 	public static async newQuizAttempt(env: Env, user: User, quizId: string) {
 		const quizAttemptId = crypto.randomUUID();
@@ -102,7 +105,7 @@ export default class QuizAttempt {
 
 		const score = '';
 		const userAnswers: string[] = [];
-		const submitted = false;
+		const submittedOn = undefined;
 
 		await quiz.addStartedAttemptUserIdAndSaveState(env, user.getId());
 		await env.QUIZ_ATTEMPTS.put(
@@ -114,7 +117,7 @@ export default class QuizAttempt {
 				quizQuestions: quiz.getQuestions(),
 				score,
 				userAnswers,
-				submitted,
+				submittedOn,
 			})
 		).catch((err) => {
 			console.error(err);
@@ -129,7 +132,7 @@ export default class QuizAttempt {
 			quiz.getQuestions(),
 			score,
 			userAnswers,
-			submitted
+			submittedOn
 		);
 	}
 
@@ -147,6 +150,9 @@ export default class QuizAttempt {
 
 			const parsedRes = JSON.parse(res);
 
+			// Parsed Date
+			const submittedOn = parsedRes.submittedOn ? new Date(parsedRes.submittedOn) : undefined;
+
 			return new QuizAttempt(
 				quizAttemptId,
 				parsedRes.quizId,
@@ -155,7 +161,7 @@ export default class QuizAttempt {
 				parsedRes.quizQuestions,
 				parsedRes.score,
 				parsedRes.userAnswers,
-				parsedRes.submitted
+				submittedOn
 			);
 		} catch (err) {
 			if (err instanceof SyntaxError) {
@@ -171,19 +177,20 @@ export default class QuizAttempt {
 			attemptId: this.getId(),
 			studentId: this.getStudentId(),
 			score: this.getScore(),
+			submittedOn: this.getSubmittedOn()!,
 		};
 	}
 
 	private validateSubmitAttempt(userAnswers: string[]) {
+		if (this.isSubmitted()) {
+			throw new KotlinKhaosAPIError('quizAttempt has already been submitted', 400);
+		}
 		if (this.getNumberOfAnswers() > this.getNumberOfQuestions()) {
 			throw new KotlinKhaosAPIError("You've got too many answers in your response", 400);
 		}
 		if (this.getNumberOfAnswers() < this.getNumberOfQuestions()) {
 			const diff = this.getNumberOfQuestions() - this.getNumberOfAnswers();
 			throw new KotlinKhaosAPIError(`You're missing answers from your quiz, add ${diff} more`, 400);
-		}
-		if (this.getSubmitted()) {
-			throw new KotlinKhaosAPIError('quizAttempt has already been submitted', 400);
 		}
 		userAnswers.forEach((userAnswer) => {
 			if (userAnswer.length > 300) {
@@ -206,9 +213,10 @@ export default class QuizAttempt {
 			throw new KotlinKhaosAPIError('Error parsing final score for quizAttempt', 500);
 		}
 
+		const submittedOnTime = new Date();
 		this.setScore(parsedFinalScore.score);
-		this.setSubmitted(true);
-		this.saveStateToKv(env);
+		this.setSubmittedOn(submittedOnTime);
+		await this.saveStateToKv(env);
 		await Quiz.addFinishedUserAttemptAndSaveState(env, this.getUserAttemptSnapshot(), this.getQuizId(), this.getStudentId());
 		return { score: this.getScore() };
 	}
@@ -228,7 +236,7 @@ export default class QuizAttempt {
 			quizQuestions: this.getQuizQuestions(),
 			score: this.getScore(),
 			userAnswers: this.getUserAnswers(),
-			submitted: this.getSubmitted(),
+			submittedOn: this.getSubmittedOn(),
 		});
 	}
 }

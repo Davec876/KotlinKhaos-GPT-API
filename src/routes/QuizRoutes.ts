@@ -82,7 +82,7 @@ export class EditQuizInstructorRoute extends OpenAPIRoute {
 			quizId: Path(Str),
 		},
 		requestBody: {
-			questions: ['Your edit question here', 'Your edit question here #2', 'Your edit question here #3'],
+			questions: ['Your edited questions here'],
 		},
 		responses: {
 			'200': {
@@ -180,6 +180,14 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 						started: Bool,
 						finished: Bool,
 						startedAttemptsUserIds: [Str],
+						finishedUserAttempts: [
+							{
+								attemptId: Str,
+								studentId: Str,
+								score: Str,
+								submittedOn: Date,
+							},
+						],
 					},
 				},
 				description: 'Successfull response',
