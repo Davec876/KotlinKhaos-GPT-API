@@ -11,14 +11,16 @@ export interface CourseInfoSnapshotForQuiz {
 // Course for interacting with firebase course
 export default class Course {
 	private readonly id: string;
+	private readonly instructorId: User['id'];
 	private readonly name: string;
 	private readonly educationLevel: string;
 	private readonly description: string;
-	private readonly userIds: User['id'][];
-	private readonly quizIds: Quiz['id'][];
+	private readonly userIds: Set<User['id']>;
+	private readonly quizIds: Set<Quiz['id']>;
 
 	private constructor(
 		id: Course['id'],
+		instructorId: User['id'],
 		name: Course['name'],
 		educationLevel: Course['educationLevel'],
 		description: Course['description'],
@@ -26,6 +28,7 @@ export default class Course {
 		quizIds: Course['quizIds']
 	) {
 		this.id = id;
+		this.instructorId = instructorId;
 		this.name = name;
 		this.educationLevel = educationLevel;
 		this.description = description;
@@ -36,6 +39,9 @@ export default class Course {
 	public getId() {
 		return this.id;
 	}
+	private getInstructorId() {
+		return this.instructorId;
+	}
 	public getName() {
 		return this.name;
 	}
@@ -45,7 +51,7 @@ export default class Course {
 	public getDescription() {
 		return this.description;
 	}
-	private getUserIds() {
+	public getUserIds() {
 		return this.userIds;
 	}
 	private getQuizIds() {
@@ -65,22 +71,27 @@ export default class Course {
 
 		// TODO: Hardcode fake values for now
 		const fakeCourseRes = {
+			instructorId: 'rkIyTsb1avUYH5QYmIArZbxqQgE2',
 			name: 'Fake Course Name',
 			educationLevel: 'University',
 			description:
 				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
-			userIds: ['E5Ptdo8YRnSFOO1tKk502ksP2322'],
+			userIds: ['rkIyTsb1avUYH5QYmIArZbxqQgE2'],
 			quizIds: [''],
 		};
 
+		const userIds: Set<string> = new Set(fakeCourseRes.userIds);
+		const quizIds: Set<string> = new Set(fakeCourseRes.quizIds);
+
 		return new Course(
 			courseId,
+			fakeCourseRes.instructorId,
 			fakeCourseRes.name,
 			fakeCourseRes.educationLevel,
 			fakeCourseRes.description,
-			fakeCourseRes.userIds,
-			fakeCourseRes.quizIds
+			userIds,
+			quizIds
 		);
-		// return new Course(courseId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);
+		// return new Course(courseId, parsedRes.instructorId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);
 	}
 }

@@ -73,6 +73,41 @@ export class NextQuizQuestionInstructorRoute extends OpenAPIRoute {
 	}
 }
 
+// PUT GPT edit the quiz
+export class EditQuizInstructorRoute extends OpenAPIRoute {
+	static schema = {
+		tags: routeTag,
+		summary: 'Edit a quiz',
+		parameters: {
+			quizId: Path(Str),
+		},
+		requestBody: {
+			questions: ['Your edit question here', 'Your edit question here #2', 'Your edit question here #3'],
+		},
+		responses: {
+			'200': {
+				schema: {
+					success: Bool,
+				},
+				description: 'Successfull response',
+			},
+			'404': error404Schema,
+		},
+	};
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+	async handle(req: IRequest, env: Env, ctx: ExecutionContext, context: any) {
+		const user = env.REQ_USER;
+		const quizId = req.params.quizId;
+		// TODO: Add typeguard later
+		const questions: string[] = context.body.questions;
+
+		const quiz = await Quiz.getQuiz(env, quizId);
+		await quiz.editQuizQuestions(env, user, questions);
+		return { success: true };
+	}
+}
+
 // POST GPT start the quiz
 export class StartQuizInstructorRoute extends OpenAPIRoute {
 	static schema = {
@@ -101,11 +136,39 @@ export class StartQuizInstructorRoute extends OpenAPIRoute {
 	}
 }
 
-// GET GPT quiz by Id
-export class GetQuizStudentRoute extends OpenAPIRoute {
+// POST GPT finish the quiz
+export class FinishQuizInstructorRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get quiz by Id',
+		summary: 'Finish a quiz',
+		parameters: {
+			quizId: Path(Str),
+		},
+		responses: {
+			'200': {
+				schema: {
+					success: Bool,
+				},
+				description: 'Successfull response',
+			},
+			'404': error404Schema,
+		},
+	};
+
+	async handle(req: IRequest, env: Env) {
+		const user = env.REQ_USER;
+		const quizId = req.params.quizId;
+		const quiz = await Quiz.getQuiz(env, quizId);
+		await quiz.finishQuiz(env, user);
+		return { success: true };
+	}
+}
+
+// GET GPT quiz by Id for instructor
+export class GetQuizInstructorRoute extends OpenAPIRoute {
+	static schema = {
+		tags: routeTag,
+		summary: 'Get quiz details by Id for instructor',
 		parameters: {
 			quizId: Path(Str),
 		},
@@ -116,6 +179,39 @@ export class GetQuizStudentRoute extends OpenAPIRoute {
 						name: Str,
 						started: Bool,
 						finished: Bool,
+						startedAttemptsUserIds: [Str],
+					},
+				},
+				description: 'Successfull response',
+			},
+			'404': error404Schema,
+		},
+	};
+
+	async handle(req: IRequest, env: Env) {
+		const instructor = env.REQ_USER;
+		const quizId = req.params.quizId;
+		const quiz = await Quiz.getQuiz(env, quizId);
+		return { quiz: quiz.getQuizViewForInstructor(instructor) };
+	}
+}
+
+// GET GPT quiz by Id for student
+export class GetQuizStudentRoute extends OpenAPIRoute {
+	static schema = {
+		tags: routeTag,
+		summary: 'Get quiz by Id for student',
+		parameters: {
+			quizId: Path(Str),
+		},
+		responses: {
+			'200': {
+				schema: {
+					quiz: {
+						name: Str,
+						started: Bool,
+						finished: Bool,
+						userAttempted: Bool,
 					},
 				},
 				description: 'Successfull response',

@@ -27,6 +27,9 @@ import {
 	NextQuizQuestionInstructorRoute,
 	StartQuizInstructorRoute,
 	GetQuizStudentRoute,
+	EditQuizInstructorRoute,
+	FinishQuizInstructorRoute,
+	GetQuizInstructorRoute,
 } from './routes/QuizRoutes';
 import {
 	CreateQuizAttemptStudentRoute,
@@ -100,8 +103,17 @@ router
 	// POST GPT get the next quiz question
 	.post('/instructor/quizs/:quizId/next-question', NextQuizQuestionInstructorRoute)
 
+	// PUT GPT edit the quiz
+	.put('/instructor/quizs/:quizId/edit', EditQuizInstructorRoute)
+
 	// POST GPT start the quiz
 	.post('/instructor/quizs/:quizId/start', StartQuizInstructorRoute)
+
+	// POST GPT finish the quiz
+	.post('/instructor/quizs/:quizId/finish', FinishQuizInstructorRoute)
+
+	// GET GPT quiz by Id for instructor
+	.get('/instructor/quizs/:quizId', GetQuizInstructorRoute)
 
 	// GET GPT quiz by Id for student
 	.get('/student/quizs/:quizId', GetQuizStudentRoute)

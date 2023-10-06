@@ -85,7 +85,7 @@ export default class QuizAttempt {
 		const userAnswers: string[] = [];
 		const submitted = false;
 
-		await quiz.addStartedAttemptUserId(env, user.getId());
+		await quiz.addStartedAttemptUserIdAndSaveState(env, user.getId());
 		await env.QUIZ_ATTEMPTS.put(
 			quizAttemptId,
 			JSON.stringify({
@@ -149,7 +149,7 @@ export default class QuizAttempt {
 			throw new KotlinKhaosAPIError("You've got too many answers in your response", 400);
 		}
 		if (this.getNumberOfAnswers() < this.getNumberOfQuestions()) {
-			const diff = this.getNumberOfAnswers() - this.getNumberOfQuestions();
+			const diff = this.getNumberOfQuestions() - this.getNumberOfAnswers();
 			throw new KotlinKhaosAPIError(`You're missing answers from your quiz, add ${diff} more`, 400);
 		}
 		if (this.getSubmitted()) {
@@ -179,7 +179,7 @@ export default class QuizAttempt {
 		this.setScore(parsedFinalScore.score);
 		this.setSubmitted(true);
 		this.saveStateToKv(env);
-		await Quiz.addFinishedUserAttempt(env, this.getUserAttemptSnapshot(), this.getQuizId());
+		await Quiz.addFinishedUserAttemptAndSaveState(env, this.getUserAttemptSnapshot(), this.getQuizId(), this.getUserId());
 		return { score: this.getScore() };
 	}
 

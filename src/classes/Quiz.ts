@@ -26,8 +26,8 @@ export default class Quiz {
 	private readonly prompt: string;
 	private readonly questionLimit: number;
 	private name: string;
-	private startedAttemptsUserIds: User['id'][];
-	private finishedUserAttempts: FinishedUserAttempt[];
+	private startedAttemptsUserIds: Set<User['id']>;
+	private finishedUserAttempts: Map<User['id'], FinishedUserAttempt>;
 	private started: boolean;
 	private finished: boolean;
 	private questions: ChatCompletionMessage[];
@@ -99,30 +99,45 @@ export default class Quiz {
 	public getNumberOfQuestions() {
 		return this.questions.length;
 	}
-	private checkIfUserAttempted(userId: string) {
-		const startedAttemptsUserIds = this.getStartedAttemptsUserIds();
-		const finishedUserAttempts = this.getFinishedUserAttempts();
-		const finishedUserIdsFromAttempts = finishedUserAttempts.map(({ userId }) => userId);
-
-		const userIdsFromAttempts = startedAttemptsUserIds.concat(finishedUserIdsFromAttempts);
-		const foundUserId = userIdsFromAttempts.includes(userId);
-		if (foundUserId) {
-			return true;
+	private clearStartedAttempts() {
+		this.startedAttemptsUserIds = new Set();
+	}
+	private addStartedAttemptUserId(userId: string) {
+		if (this.checkIfUserAttempted(userId)) {
+			throw new KotlinKhaosAPIError('This user has already attempted this quiz', 400);
 		}
-		return false;
+		this.startedAttemptsUserIds.add(userId);
+	}
+	private addFinishedUserAttempt(userId: string, finishedUserAttempt: FinishedUserAttempt) {
+		this.finishedUserAttempts.set(userId, finishedUserAttempt);
+	}
+	private checkIfUserFinished(userId: string) {
+		return this.finishedUserAttempts.has(userId);
+	}
+	private checkIfUserAttempted(userId: string) {
+		return this.startedAttemptsUserIds.has(userId) || this.finishedUserAttempts.has(userId);
+	}
+	private setStarted(started: boolean) {
+		this.started = started;
+	}
+	private setFinished(finished: boolean) {
+		this.finished = finished;
+	}
+	private setQuestions(questions: ChatCompletionMessage[]) {
+		this.questions = questions;
 	}
 	public getQuizAttemptViewForStudent(user: User) {
 		if (user.getCourseId() !== this.getCourseId()) {
 			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
 		}
 
-		const usersAttempt = this.getFinishedUserAttempts().find(({ userId }) => userId === user.getId());
-		if (!usersAttempt && this.checkIfUserAttempted(user.getId())) {
+		if (!this.checkIfUserFinished(user.getId()) && this.checkIfUserAttempted(user.getId())) {
 			throw new KotlinKhaosAPIError('User has not finished this quiz', 404);
 		}
-		if (!usersAttempt) {
+		if (!this.checkIfUserAttempted(user.getId())) {
 			throw new KotlinKhaosAPIError('User has not attempted this quiz', 404);
 		}
+		const usersAttempt = this.getFinishedUserAttempts().get(user.getId());
 		return usersAttempt;
 	}
 	public getQuizViewForStudent(user: User) {
@@ -134,6 +149,21 @@ export default class Quiz {
 			started: this.getStarted(),
 			finished: this.getFinished(),
 			userAttempted: this.checkIfUserAttempted(user.getId()),
+		};
+	}
+	public getQuizViewForInstructor(user: User) {
+		if (user.getId() !== this.getAuthorId()) {
+			throw new KotlinKhaosAPIError("Only the quiz author can view this quiz's details", 403);
+		}
+		const startedAttemptsUserIds = [...this.getStartedAttemptsUserIds()];
+		const finishedUserAttempts = Object.fromEntries(this.getFinishedUserAttempts().entries());
+		return {
+			name: this.getName(),
+			started: this.getStarted(),
+			finished: this.getFinished(),
+			questions: this.getQuestions(),
+			startedAttemptsUserIds,
+			finishedUserAttempts,
 		};
 	}
 	private async addQuestion(question: ChatCompletionMessage) {
@@ -158,8 +188,8 @@ export default class Quiz {
 		const quizId = crypto.randomUUID();
 		const authorsCourse = await Course.getCourse(env, author.getCourseId());
 		const authorsCourseInfo = authorsCourse.getCourseInfoSnapshotForQuiz();
-		const startedAttemptsUserIds: string[] = [];
-		const finishedUserAttempts: FinishedUserAttempt[] = [];
+		const startedAttemptsUserIds: Set<string> = new Set();
+		const finishedUserAttempts: Map<string, FinishedUserAttempt> = new Map();
 		const started = false;
 		const finished = false;
 
@@ -175,8 +205,8 @@ export default class Quiz {
 				prompt: quizOptions.prompt,
 				questionLimit: quizOptions.questionLimit,
 				name: quizOptions.name,
-				startedAttemptsUserIds,
-				finishedUserAttempts,
+				startedAttemptsUserIds: [...startedAttemptsUserIds],
+				finishedUserAttempts: Object.fromEntries(finishedUserAttempts.entries()),
 				started,
 				finished,
 				questions,
@@ -216,6 +246,10 @@ export default class Quiz {
 
 			const parsedRes = JSON.parse(res);
 
+			// Convert back to Set and Map
+			const startedAttemptsUserIds: Set<User['id']> = new Set(parsedRes.startedAttemptsUserIds);
+			const finishedUserAttempts: Map<User['id'], FinishedUserAttempt> = new Map(Object.entries(parsedRes.finishedUserAttempts));
+
 			return new Quiz(
 				quizId,
 				parsedRes.authorId,
@@ -224,8 +258,8 @@ export default class Quiz {
 				parsedRes.prompt,
 				parsedRes.questionLimit,
 				parsedRes.name,
-				parsedRes.startedAttemptsUserIds,
-				parsedRes.finishedUserAttempts,
+				startedAttemptsUserIds,
+				finishedUserAttempts,
 				parsedRes.started,
 				parsedRes.finished,
 				parsedRes.questions
@@ -273,23 +307,84 @@ export default class Quiz {
 
 	public async startQuiz(env: Env, user: User) {
 		this.validateQuizStartConditions(user);
-		this.started = true;
+		this.setStarted(true);
 		await this.saveStateToKv(env);
 		return true;
 	}
 
-	public async addStartedAttemptUserId(env: Env, userId: string) {
-		if (this.checkIfUserAttempted(userId)) {
-			throw new KotlinKhaosAPIError('This user has already attempted this quiz', 400);
-		}
-		this.startedAttemptsUserIds.push(userId);
+	public async addStartedAttemptUserIdAndSaveState(env: Env, userId: string) {
+		this.addStartedAttemptUserId(userId);
 		await this.saveStateToKv(env);
 	}
 
-	public static async addFinishedUserAttempt(env: Env, userAttempt: FinishedUserAttempt, quizId: string) {
+	public static async addFinishedUserAttemptAndSaveState(env: Env, userAttempt: FinishedUserAttempt, quizId: string, userId: string) {
 		const quiz = await Quiz.getQuiz(env, quizId);
-		quiz.finishedUserAttempts.push(userAttempt);
+		quiz.addFinishedUserAttempt(userId, userAttempt);
 		await quiz.saveStateToKv(env);
+	}
+
+	private validateEditQuizQuestionsConditions(user: User, questions: string[]) {
+		if (this.getAuthorId() !== user.getId()) {
+			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
+		}
+		if (this.getStarted()) {
+			throw new KotlinKhaosAPIError('You cannot edit questions once the quiz is in progress', 400);
+		}
+		if (questions.length > this.getQuestionLimit()) {
+			throw new KotlinKhaosAPIError("You've exceeded the question limit for the quiz", 400);
+		}
+		if (questions.length < this.getQuestionLimit()) {
+			const diff = this.getQuestionLimit() - questions.length;
+			throw new KotlinKhaosAPIError(`You're missing questions from your quiz, add ${diff} more`, 400);
+		}
+	}
+
+	public async editQuizQuestions(env: Env, user: User, questions: string[]) {
+		this.validateEditQuizQuestionsConditions(user, questions);
+		const userQuestionMessages = questions.map((question) => {
+			if (question.length > 300) {
+				throw new KotlinKhaosAPIError('Please shorten your questions', 400);
+			}
+			const userMessage: ChatCompletionMessage = {
+				content: question,
+				role: 'user',
+			};
+			return userMessage;
+		});
+		this.setQuestions(userQuestionMessages);
+		await this.saveStateToKv(env);
+	}
+
+	private validateFinishQuizConditions(user: User) {
+		if (this.getAuthorId() !== user.getId()) {
+			throw new KotlinKhaosAPIError('Only the quiz author may configure this quiz', 403);
+		}
+		if (this.getFinished()) {
+			throw new KotlinKhaosAPIError('This quiz has already finished', 400);
+		}
+	}
+
+	public async finishQuiz(env: Env, user: User) {
+		this.validateFinishQuizConditions(user);
+		this.clearStartedAttempts();
+
+		const authorsCourse = await Course.getCourse(env, this.getCourseId());
+		const courseMemberIds = authorsCourse.getUserIds();
+
+		// Assign 0 as user's score if user did not finish the quiz
+		courseMemberIds.forEach((courseMemberId) => {
+			if (!this.checkIfUserFinished(courseMemberId)) {
+				const finishedUserAttempt: FinishedUserAttempt = {
+					attemptId: '',
+					userId: courseMemberId,
+					score: '0',
+				};
+				this.addFinishedUserAttempt(courseMemberId, finishedUserAttempt);
+			}
+		});
+
+		this.setFinished(true);
+		await this.saveStateToKv(env);
 	}
 
 	private async saveStateToKv(env: Env) {
@@ -307,8 +402,8 @@ export default class Quiz {
 			prompt: this.getPrompt(),
 			questionLimit: this.getQuestionLimit(),
 			name: this.getName(),
-			startedAttemptsUserIds: this.getStartedAttemptsUserIds(),
-			finishedUserAttempts: this.getFinishedUserAttempts(),
+			startedAttemptsUserIds: [...this.getStartedAttemptsUserIds()],
+			finishedUserAttempts: Object.fromEntries(this.getFinishedUserAttempts().entries()),
 			started: this.getStarted(),
 			finished: this.getFinished(),
 			questions: this.getQuestions(),
