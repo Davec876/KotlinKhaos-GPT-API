@@ -1,6 +1,7 @@
+import Quiz from './Quiz';
 import type { Env } from '../index';
-import type Quiz from './Quiz';
 import type User from './User';
+import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 
 export interface CourseInfoSnapshotForQuiz {
 	id: string;
@@ -54,7 +55,7 @@ export default class Course {
 	public getStudentIds() {
 		return this.studentIds;
 	}
-	private getQuizIds() {
+	public getQuizIds() {
 		return this.quizIds;
 	}
 	public getCourseInfoSnapshotForQuiz(): CourseInfoSnapshotForQuiz {
@@ -77,7 +78,7 @@ export default class Course {
 			description:
 				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
 			studentIds: ['rkIyTsb1avUYH5QYmIArZbxqQgE2'],
-			quizIds: [''],
+			quizIds: ['d4294609-72f7-4ec5-8d7f-f6db0493647e'],
 		};
 
 		const studentIds: Set<string> = new Set(fakeCourseRes.studentIds);
@@ -93,5 +94,66 @@ export default class Course {
 			quizIds
 		);
 		// return new Course(courseId, parsedRes.instructorId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);
+	}
+
+	public async getAllQuizsForCourseInstructorView(env: Env, user: User) {
+		const quizIds = this.getQuizIds();
+		if (user.getType() === 'student') {
+			throw new KotlinKhaosAPIError('Only the course instructor can view details on all the quizs', 403);
+		}
+		if (quizIds.size === 0) {
+			throw new KotlinKhaosAPIError('No quizs found for this course', 404);
+		}
+		const quizPromises: Promise<Quiz>[] = [];
+		quizIds.forEach((quizId) => {
+			quizPromises.push(Quiz.getQuiz(env, quizId));
+		});
+		const quizs = await Promise.all(quizPromises);
+		return quizs.map((quiz) => {
+			return quiz.getQuizViewForInstructor(user);
+		});
+	}
+
+	public async getAllQuizsForCourseStudentView(env: Env, user: User) {
+		const quizIds = this.getQuizIds();
+		if (quizIds.size === 0) {
+			throw new KotlinKhaosAPIError('No quizs found for this course', 404);
+		}
+
+		const quizPromises: Promise<Quiz>[] = [];
+		quizIds.forEach((quizId) => {
+			quizPromises.push(Quiz.getQuiz(env, quizId));
+		});
+		const quizs = await Promise.all(quizPromises);
+		return quizs.map((quiz) => {
+			return quiz.getQuizViewForStudent(user);
+		});
+	}
+
+	public async getWeeklyQuizsSummaryForCourseStudentView(env: Env, user: User) {
+		const quizIds = this.getQuizIds();
+
+		if (quizIds.size === 0) {
+			return [];
+		}
+
+		const quizPromises: Promise<Quiz>[] = [];
+		quizIds.forEach((quizId) => {
+			quizPromises.push(Quiz.getQuiz(env, quizId));
+		});
+		const quizs = await Promise.all(quizPromises);
+		const oneWeekAgo = new Date().setDate(new Date().getUTCDate() - 7);
+
+		return quizs.reduce<{ quizAttemptId: string; score: string; day: Date }[]>((acc, quiz) => {
+			const { usersAttempt } = quiz.getQuizViewForStudent(user);
+			if (usersAttempt && usersAttempt.submittedOn.getUTCDate() <= oneWeekAgo) {
+				acc.push({
+					quizAttemptId: usersAttempt.attemptId,
+					score: usersAttempt.score,
+					day: usersAttempt.submittedOn,
+				});
+			}
+			return acc;
+		}, []);
 	}
 }

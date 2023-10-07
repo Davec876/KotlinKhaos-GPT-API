@@ -71,11 +71,11 @@ export class GetQuizAttemptStudentRoute extends OpenAPIRoute {
 	}
 }
 
-// GET GPT quizAttempt by Id
+// GET GPT quizAttempt by id
 export class GetQuizAttemptByIdStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get quiz attempt by Id',
+		summary: 'Get quiz attempt by id',
 		parameters: {
 			quizAttemptId: Path(Str),
 		},

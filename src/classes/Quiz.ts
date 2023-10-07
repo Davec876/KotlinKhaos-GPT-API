@@ -153,11 +153,13 @@ export default class Quiz {
 		if (!this.checkIfUserIsStudent(user)) {
 			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
 		}
+		const usersAttempt = this.getFinishedUserAttempts().get(user.getId()) ?? null;
 		return {
+			id: this.getId(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),
-			userAttempted: this.checkIfUserAttempted(user.getId()),
+			usersAttempt: usersAttempt,
 		};
 	}
 	public getQuizViewForInstructor(user: User) {
@@ -167,6 +169,7 @@ export default class Quiz {
 		const startedAttemptsUserIds = [...this.getStartedAttemptsUserIds()];
 		const finishedUserAttempts = Object.fromEntries(this.getFinishedUserAttempts().entries());
 		return {
+			id: this.getId(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),

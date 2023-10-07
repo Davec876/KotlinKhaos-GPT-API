@@ -1,6 +1,6 @@
+import type Course from './Course';
 import type { Env } from '../index';
 import type { FirebaseUserToken } from '../services/firebase';
-import type Course from './Course';
 
 // Course for interacting with firebase user
 export default class User {

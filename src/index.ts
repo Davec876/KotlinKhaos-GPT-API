@@ -37,6 +37,11 @@ import {
 	GetQuizAttemptStudentRoute,
 	SubmitQuizAttemptStudentRoute,
 } from './routes/QuizAttemptRoutes';
+import {
+	GetCourseQuizsInstructorRoute,
+	GetCourseQuizsStudentRoute,
+	GetCourseWeeklyQuizsSummaryForStudentRoute,
+} from './routes/CourseRoutes';
 import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
@@ -112,10 +117,10 @@ router
 	// POST GPT finish the quiz
 	.post('/instructor/quizs/:quizId/finish', FinishQuizInstructorRoute)
 
-	// GET GPT quiz by Id for instructor
+	// GET GPT quiz by id for instructor
 	.get('/instructor/quizs/:quizId', GetQuizInstructorRoute)
 
-	// GET GPT quiz by Id for student
+	// GET GPT quiz by id for student
 	.get('/student/quizs/:quizId', GetQuizStudentRoute)
 
 	// POST GPT create a new quiz attempt
@@ -124,11 +129,20 @@ router
 	// GET quiz attempt score by quizId for a authenticated user
 	.get('/student/quizs/:quizId/attempt', GetQuizAttemptStudentRoute)
 
-	// GET GPT quizAttempt by Id for student
+	// GET GPT quizAttempt by id for student
 	.get('/student/quiz-attempts/:quizAttemptId', GetQuizAttemptByIdStudentRoute)
 
 	// POST GPT submit quiz attempt
 	.post('/student/quiz-attempts/:quizAttemptId/submit', SubmitQuizAttemptStudentRoute)
+
+	// GET all course quizs details for instructor
+	.get('/instructor/course/quizs', GetCourseQuizsInstructorRoute)
+
+	// GET all course quizs for student
+	.get('/student/course/quizs', GetCourseQuizsStudentRoute)
+
+	// GET weekly course quizs summary for student
+	.get('/student/course/quizs/weekly-summary', GetCourseWeeklyQuizsSummaryForStudentRoute)
 
 	// 404 for everything else
 	.all('*', () => error(404));

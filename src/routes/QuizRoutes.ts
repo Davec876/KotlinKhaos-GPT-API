@@ -164,11 +164,11 @@ export class FinishQuizInstructorRoute extends OpenAPIRoute {
 	}
 }
 
-// GET GPT quiz by Id for instructor
+// GET GPT quiz by id for instructor
 export class GetQuizInstructorRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get quiz details by Id for instructor',
+		summary: 'Get quiz details by id for instructor',
 		parameters: {
 			quizId: Path(Str),
 		},
@@ -176,6 +176,7 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 			'200': {
 				schema: {
 					quiz: {
+						id: Str,
 						name: Str,
 						started: Bool,
 						finished: Bool,
@@ -204,11 +205,11 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 	}
 }
 
-// GET GPT quiz by Id for student
+// GET GPT quiz by id for student
 export class GetQuizStudentRoute extends OpenAPIRoute {
 	static schema = {
 		tags: routeTag,
-		summary: 'Get quiz by Id for student',
+		summary: 'Get quiz by id for student',
 		parameters: {
 			quizId: Path(Str),
 		},
@@ -216,10 +217,16 @@ export class GetQuizStudentRoute extends OpenAPIRoute {
 			'200': {
 				schema: {
 					quiz: {
+						id: Str,
 						name: Str,
 						started: Bool,
 						finished: Bool,
-						userAttempted: Bool,
+						userAttempt: {
+							attemptId: Str,
+							studentId: Str,
+							score: Str,
+							submittedOn: Date,
+						},
 					},
 				},
 				description: 'Successfull response',
