@@ -63,13 +63,13 @@ export default class PracticeQuiz {
 	private getCurrentQuestionNumber() {
 		return this.currentQuestionNumber;
 	}
-	private async incrementCurrentQuestionNumber() {
+	private incrementCurrentQuestionNumber() {
 		this.currentQuestionNumber = this.currentQuestionNumber + 1;
 	}
 	public getHistory() {
 		return this.history;
 	}
-	public getLatestContent() {
+	private getLatestContent() {
 		return this.history[this.history.length - 1].content;
 	}
 	private checkIfUserIsQuizCreator(user: User) {
@@ -85,9 +85,9 @@ export default class PracticeQuiz {
 			if (!parsedFinalScore) {
 				throw new KotlinKhaosAPIError('Error parsing final score for practiceQuiz', 500);
 			}
-			return parsedFinalScore;
+			return { score: parsedFinalScore };
 		}
-		return this.getLatestContent();
+		return { message: this.getLatestContent() };
 	}
 	private async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage[]) {
 		this.setState(state);
@@ -182,7 +182,8 @@ export default class PracticeQuiz {
 		}
 		// Generate final score once last question is complete
 		if (this.getCurrentQuestionNumber() === this.getQuestionLimit()) {
-			return this.getFinalScore(env);
+			const finalScore = await this.getFinalScore(env);
+			return { score: finalScore };
 		}
 		// Don't continue if awaiting user response
 		if (this.getState() === 'awaitingUserResponse') {
@@ -193,7 +194,7 @@ export default class PracticeQuiz {
 		this.appendMessageToHistory(env, newState, nextQuestion);
 		this.incrementCurrentQuestionNumber();
 		await this.saveStateToKv(env);
-		return this.getLatestContent();
+		return { problem: this.getLatestContent() };
 	}
 
 	private validateFeedbackConditions(user: User, userAnswer: string) {
@@ -223,19 +224,19 @@ export default class PracticeQuiz {
 		const { newState, messages } = await giveFeedbackToConversation(this, userAnswer, env);
 		this.appendMessagesToHistory(env, newState, messages);
 		await this.saveStateToKv(env);
-		return this.getLatestContent();
+		return { feedback: this.getLatestContent() };
 	}
 
 	private async getFinalScore(env: Env) {
 		const { newState, finalScore } = await giveFinalScoreFromConversation(this, env);
-		this.appendMessageToHistory(env, newState, finalScore);
 
 		// Validate finalScore
-		const parsedFinalScore = parseFinalScore(this.getLatestContent());
+		const parsedFinalScore = parseFinalScore(finalScore.content);
 		if (!parsedFinalScore) {
 			throw new KotlinKhaosAPIError('Error parsing final score for practiceQuiz', 500);
 		}
 
+		this.appendMessageToHistory(env, newState, finalScore);
 		await this.saveStateToKv(env);
 		return parsedFinalScore;
 	}

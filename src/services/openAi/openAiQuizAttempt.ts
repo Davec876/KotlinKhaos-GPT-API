@@ -26,7 +26,7 @@ function mergedQuestionsAndUserAnswers(quizAttempt: QuizAttempt): ChatCompletion
 function getFinalScoreMessage(history: ChatCompletionMessage[]): ChatCompletionMessage[] {
 	const finalScoreMessage = history.concat({
 		content:
-			'Tally up the score based off all the users answers and reply with a final serious score out of 10 in the exact stringified json format {"score": "scoreAchieved/10"}',
+			'Tally up the score based off all the users answers and reply with a final serious score integer from 0 to 10 in the exact stringified json format {"score": "scoreAchieved"}',
 		role: 'system',
 	});
 	return finalScoreMessage;

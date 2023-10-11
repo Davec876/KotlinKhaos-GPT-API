@@ -1,4 +1,4 @@
-import { Bool, OpenAPIRoute, Str } from '@cloudflare/itty-router-openapi';
+import { Bool, Num, OpenAPIRoute, Str } from '@cloudflare/itty-router-openapi';
 import { type IRequest } from 'itty-router';
 import type { Env } from '../index';
 import Course from '../classes/Course';
@@ -31,7 +31,7 @@ export class GetCourseQuizsInstructorRoute extends OpenAPIRoute {
 								{
 									attemptId: Str,
 									studentId: Str,
-									score: Str,
+									score: Num,
 									submittedOn: Date,
 								},
 							],
@@ -68,7 +68,7 @@ export class GetCourseQuizsStudentRoute extends OpenAPIRoute {
 							userAttempt: {
 								attemptId: Str,
 								studentId: Str,
-								score: Str,
+								score: Num,
 								submittedOn: Date,
 							},
 						},
@@ -95,15 +95,20 @@ export class GetCourseWeeklyQuizsSummaryForStudentRoute extends OpenAPIRoute {
 		responses: {
 			'200': {
 				schema: {
-					'weekly-summary': [
-						{
-							quizAttemptId: Str,
-							score: Str,
-							day: Date,
+					'weekly-summary': {
+						sat: {
+							averageScore: Num,
+							quizs: [
+								{
+									quizAttemptId: Str,
+									score: Num,
+								},
+							],
 						},
-					],
+					},
 				},
-				description: 'Successfull response',
+				description:
+					"Successfull weekly course summary response. Where each day's summary is outputted under the key 'sun', 'mon', 'tues', 'wed', 'thurs', 'fri', 'sat'",
 			},
 			'404': error404Schema,
 		},

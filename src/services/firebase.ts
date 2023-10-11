@@ -8,11 +8,11 @@ import type { Env } from '../index';
 
 // Sourced from https://github.com/kriasoft/web-auth-library/blob/main/google/idToken.ts#L249
 export interface FirebaseUserToken {
-	sub: string;
-	user_id: string;
-	email?: string;
-	email_verified?: boolean;
-	name?: string;
+	readonly sub: string;
+	readonly user_id: string;
+	readonly email?: string;
+	readonly email_verified?: boolean;
+	readonly name?: string;
 }
 
 export async function verifyToken(token: string, ctx: ExecutionContext): Promise<FirebaseUserToken> {

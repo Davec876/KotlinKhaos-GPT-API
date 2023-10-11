@@ -9,7 +9,7 @@ import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 interface FinishedUserAttempt {
 	readonly attemptId: QuizAttempt['id'];
 	readonly studentId: User['id'];
-	readonly score: string;
+	readonly score: number;
 	readonly submittedOn: Date;
 }
 
@@ -183,7 +183,7 @@ export default class Quiz {
 	}
 	private static validateNewQuizConditions(quizOptions: QuizOptions, user: User) {
 		if (user.getType() !== 'instructor') {
-			throw new KotlinKhaosAPIError('Only instructors may create classes', 403);
+			throw new KotlinKhaosAPIError("Only instructors may create quiz's", 403);
 		}
 
 		if (quizOptions.prompt.length > 20) {
@@ -403,7 +403,7 @@ export default class Quiz {
 				const finishedUserAttempt: FinishedUserAttempt = {
 					attemptId: '',
 					studentId,
-					score: '0',
+					score: 0,
 					submittedOn: new Date(),
 				};
 				this.addFinishedUserAttempt(studentId, finishedUserAttempt);

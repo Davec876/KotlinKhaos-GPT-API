@@ -12,7 +12,7 @@ export default class QuizAttempt {
 	private readonly courseId: Course['id'];
 	private readonly studentId: User['id'];
 	private readonly quizQuestions: Quiz['questions'];
-	private score: string;
+	private score: number;
 	private userAnswers: string[];
 	private submittedOn?: Date;
 
@@ -69,7 +69,7 @@ export default class QuizAttempt {
 	private getNumberOfAnswers() {
 		return this.userAnswers.length;
 	}
-	private setScore(score: string) {
+	private setScore(score: number) {
 		this.score = score;
 	}
 	private setUserAnswers(userAnswers: string[]) {
@@ -103,7 +103,7 @@ export default class QuizAttempt {
 			throw new KotlinKhaosAPIError("Only students of this quiz's course may attempt this quiz", 403);
 		}
 
-		const score = '';
+		const score = 0;
 		const userAnswers: string[] = [];
 		const submittedOn = undefined;
 
@@ -214,7 +214,7 @@ export default class QuizAttempt {
 		}
 
 		const submittedOnTime = new Date();
-		this.setScore(parsedFinalScore.score);
+		this.setScore(parsedFinalScore);
 		this.setSubmittedOn(submittedOnTime);
 		await this.saveStateToKv(env);
 		await Quiz.addFinishedUserAttemptAndSaveState(env, this.getUserAttemptSnapshot(), this.getQuizId(), this.getStudentId());

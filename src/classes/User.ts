@@ -46,8 +46,9 @@ export default class User {
 
 		const name = userToken.name ?? fakeUserRes.name;
 		const type = userToken.user_id === 'qUVYul1QVCY3GV4aGbykkafLDSv2' ? 'instructor' : fakeUserRes.type;
+		const courseId = userToken.user_id === '0P1OnA2OPxSKBqOlE4rtptSozrF2' ? '2' : fakeUserRes.courseId;
 
-		return new User(userToken.user_id, fakeUserRes.courseId, name, type);
+		return new User(userToken.user_id, courseId, name, type);
 	}
 
 	// Load user from firebase db

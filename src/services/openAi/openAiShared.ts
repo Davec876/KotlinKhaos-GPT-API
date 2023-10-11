@@ -13,7 +13,7 @@ export function parseFinalScore(finalScore: string | null) {
 
 	try {
 		// TODO: Typeguard this / throw error if gpt returns wrong format
-		return JSON.parse(finalScore) as { score: string };
+		return Number.parseInt((JSON.parse(finalScore) as { score: string }).score);
 	} catch (err) {
 		if (err instanceof SyntaxError) {
 			console.error(err);

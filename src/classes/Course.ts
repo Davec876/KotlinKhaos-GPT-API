@@ -4,9 +4,9 @@ import type User from './User';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 
 export interface CourseInfoSnapshotForQuiz {
-	id: string;
-	educationLevel: string;
-	description: string;
+	readonly id: string;
+	readonly educationLevel: string;
+	readonly description: string;
 }
 
 // Course for interacting with firebase course
@@ -71,28 +71,52 @@ export default class Course {
 		// const parsedRes = JSON.parse(res);
 
 		// TODO: Hardcode fake values for now
-		const fakeCourseRes = {
+		if (courseId === '2') {
+			const fakeElementaryCourseRes = {
+				instructorId: '0P1OnA2OPxSKBqOlE4rtptSozrF2',
+				name: 'Fake Course Name',
+				educationLevel: 'Elementary',
+				description: 'Learning about plants, nature and wildlife on our planet',
+				studentIds: ['0P1OnA2OPxSKBqOlE4rtptSozrF2'],
+				quizIds: [],
+			};
+			const elementaryStudentIds: Set<string> = new Set(fakeElementaryCourseRes.studentIds);
+			const elementaryQuizIds: Set<string> = new Set(fakeElementaryCourseRes.quizIds);
+
+			return new Course(
+				courseId,
+				fakeElementaryCourseRes.instructorId,
+				fakeElementaryCourseRes.name,
+				fakeElementaryCourseRes.educationLevel,
+				fakeElementaryCourseRes.description,
+				elementaryStudentIds,
+				elementaryQuizIds
+			);
+		}
+
+		// TODO: Hardcode fake values for now
+		const fakeUniversityCourseRes = {
 			instructorId: 'rkIyTsb1avUYH5QYmIArZbxqQgE2',
 			name: 'Fake Course Name',
 			educationLevel: 'University',
 			description:
 				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
 			studentIds: ['rkIyTsb1avUYH5QYmIArZbxqQgE2'],
-			quizIds: ['d4294609-72f7-4ec5-8d7f-f6db0493647e'],
+			quizIds: ['a39a665e-4da5-4048-a2a5-a55690bb0805', '1c8c9598-d458-4778-82cf-89e38061fb45'],
 		};
 
-		const studentIds: Set<string> = new Set(fakeCourseRes.studentIds);
-		const quizIds: Set<string> = new Set(fakeCourseRes.quizIds);
-
+		const universityStudentIds: Set<string> = new Set(fakeUniversityCourseRes.studentIds);
+		const universityQuizIds: Set<string> = new Set(fakeUniversityCourseRes.quizIds);
 		return new Course(
 			courseId,
-			fakeCourseRes.instructorId,
-			fakeCourseRes.name,
-			fakeCourseRes.educationLevel,
-			fakeCourseRes.description,
-			studentIds,
-			quizIds
+			fakeUniversityCourseRes.instructorId,
+			fakeUniversityCourseRes.name,
+			fakeUniversityCourseRes.educationLevel,
+			fakeUniversityCourseRes.description,
+			universityQuizIds,
+			universityStudentIds
 		);
+
 		// return new Course(courseId, parsedRes.instructorId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);
 	}
 
@@ -144,16 +168,30 @@ export default class Course {
 		const quizs = await Promise.all(quizPromises);
 		const oneWeekAgo = new Date().setDate(new Date().getUTCDate() - 7);
 
-		return quizs.reduce<{ quizAttemptId: string; score: string; day: Date }[]>((acc, quiz) => {
+		return quizs.reduce<Record<string, { averageScore: number; quizs: Array<{ quizAttemptId: string; score: number }> }>>((acc, quiz) => {
 			const { usersAttempt } = quiz.getQuizViewForStudent(user);
+
 			if (usersAttempt && usersAttempt.submittedOn.getUTCDate() <= oneWeekAgo) {
-				acc.push({
+				const dayNames = ['sun', 'mon', 'tues', 'wed', 'thurs', 'fri', 'sat'];
+				const dayStr = dayNames[usersAttempt.submittedOn.getUTCDay()];
+
+				if (!acc[dayStr]) {
+					acc[dayStr] = {
+						averageScore: 0,
+						quizs: [],
+					};
+				}
+
+				acc[dayStr].quizs.push({
 					quizAttemptId: usersAttempt.attemptId,
 					score: usersAttempt.score,
-					day: usersAttempt.submittedOn,
 				});
+
+				// calculate average score
+				const totalScore = acc[dayStr].quizs.reduce((sum, attempt) => sum + attempt.score, 0);
+				acc[dayStr].averageScore = totalScore / acc[dayStr].quizs.length;
 			}
 			return acc;
-		}, []);
+		}, {});
 	}
 }

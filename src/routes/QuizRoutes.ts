@@ -1,4 +1,4 @@
-import { Bool, OpenAPIRoute, Path, Str } from '@cloudflare/itty-router-openapi';
+import { Bool, Num, OpenAPIRoute, Path, Str } from '@cloudflare/itty-router-openapi';
 import { type IRequest } from 'itty-router';
 import type { Env } from '../index';
 import Quiz, { type QuizOptions } from '../classes/Quiz';
@@ -185,7 +185,7 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 							{
 								attemptId: Str,
 								studentId: Str,
-								score: Str,
+								score: Num,
 								submittedOn: Date,
 							},
 						],
@@ -224,7 +224,7 @@ export class GetQuizStudentRoute extends OpenAPIRoute {
 						userAttempt: {
 							attemptId: Str,
 							studentId: Str,
-							score: Str,
+							score: Num,
 							submittedOn: Date,
 						},
 					},
