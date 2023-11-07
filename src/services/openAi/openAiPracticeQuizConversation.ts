@@ -1,12 +1,12 @@
 import { OpenAI } from 'openai';
 import { getModel, getStartingMessage } from './openAiShared';
 import type { Env } from '../../index';
-import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type PracticeQuiz from '../../classes/PracticeQuiz';
 
-function giveFeedbackMessage(practiceQuiz: PracticeQuiz, userMessage: ChatCompletionMessage): ChatCompletionMessage[] {
+function giveFeedbackMessage(practiceQuiz: PracticeQuiz, userMessage: ChatCompletionMessageParam): ChatCompletionMessageParam[] {
 	const usersCourseInfo = practiceQuiz.getSavedUsersCourseInfo();
-	const systemMessage: ChatCompletionMessage = {
+	const systemMessage: ChatCompletionMessageParam = {
 		content: `A ${usersCourseInfo.educationLevel} student who is taking a course about the ${usersCourseInfo.description} is replying to a question that you've just given them in a numbered quiz format. You are replying to them and giving them serious concise feedback within 50 words on their answer and assigning a score out of 10 in the format 'Score: score/10'`,
 		role: 'system',
 	};
@@ -14,15 +14,15 @@ function giveFeedbackMessage(practiceQuiz: PracticeQuiz, userMessage: ChatComple
 	return feedbackMessage;
 }
 
-function continueConversationMessage(practiceQuiz: PracticeQuiz): ChatCompletionMessage[] {
+function continueConversationMessage(practiceQuiz: PracticeQuiz): ChatCompletionMessageParam[] {
 	const startingMessage = getStartingMessage(practiceQuiz.getSavedUsersCourseInfo(), practiceQuiz.getPrompt());
 	return startingMessage.concat(practiceQuiz.getHistory());
 }
 
-function getFinalScoreMessage(history: ChatCompletionMessage[]): ChatCompletionMessage[] {
+function getFinalScoreMessage(history: ChatCompletionMessageParam[]): ChatCompletionMessageParam[] {
 	const finalScoreMessage = history.concat({
 		content:
-			'Tally up the score based off all the users answers and feedback provided and reply with a final serious score integer from 0 to 10 in the exact stringified json format {"score": "scoreAchieved"}',
+			'Tally up the score based off all the users answers and feedback provided and reply with a final serious score integer from 0 to 10 in the exact json format {"score": "scoreAchieved"}',
 		role: 'system',
 	});
 	return finalScoreMessage;
@@ -32,7 +32,7 @@ export async function createNewConversation(
 	env: Env,
 	savedUsersCourseInfo: PracticeQuiz['savedUsersCourseInfo'],
 	prompt: string
-): Promise<ChatCompletionMessage> {
+): Promise<ChatCompletionMessageParam> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const completion = await openai.chat.completions.create({
 		model: getModel(env),
@@ -60,7 +60,7 @@ export async function continueConversation(practiceQuiz: PracticeQuiz, env: Env)
 
 export async function giveFeedbackToConversation(practiceQuiz: PracticeQuiz, userAnswer: string, env: Env) {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
-	const userMessage: ChatCompletionMessage = {
+	const userMessage: ChatCompletionMessageParam = {
 		content: userAnswer,
 		role: 'user',
 	};
@@ -87,6 +87,7 @@ export async function giveFinalScoreFromConversation(practiceQuiz: PracticeQuiz,
 		model: getModel(env),
 		messages: message,
 		max_tokens: 50,
+		response_format: { type: 'json_object' },
 	});
 	const finalScore = completion.choices[0].message;
 	const newState = 'completed' as const;

@@ -2,16 +2,16 @@ import { OpenAI } from 'openai';
 import { getModel } from './openAiShared';
 import { getStartingMessage } from './openAiShared';
 import type { Env } from '../../index';
-import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type Quiz from '../../classes/Quiz';
 import type Course from '../../classes/Course';
 
-function continueConversationMessage(quiz: Quiz): ChatCompletionMessage[] {
+function continueConversationMessage(quiz: Quiz): ChatCompletionMessageParam[] {
 	const startingMessage = getStartingMessage(quiz.getSavedAuthorsCourseInfo(), quiz.getPrompt());
 	return startingMessage.concat(quiz.getQuestions());
 }
 
-export async function createNewQuiz(env: Env, usersCourse: Course, prompt: string): Promise<ChatCompletionMessage> {
+export async function createNewQuiz(env: Env, usersCourse: Course, prompt: string): Promise<ChatCompletionMessageParam> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const completion = await openai.chat.completions.create({
 		model: getModel(env),
@@ -23,7 +23,7 @@ export async function createNewQuiz(env: Env, usersCourse: Course, prompt: strin
 	return firstQuestion;
 }
 
-export async function getNextQuestion(quiz: Quiz, env: Env): Promise<ChatCompletionMessage> {
+export async function getNextQuestion(quiz: Quiz, env: Env): Promise<ChatCompletionMessageParam> {
 	const openai = new OpenAI({ apiKey: env.OPENAI_API_TOKEN });
 	const message = continueConversationMessage(quiz);
 
