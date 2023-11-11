@@ -27,7 +27,7 @@ export async function getDebugUserToken(env: Env) {
 	// Generate debug user token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'rkIyTsb1avUYH5QYmIArZbxqQgE2',
+		uid: 'Ey3M3insFkYi7eeKBLFnUMHlom32',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
@@ -37,7 +37,7 @@ export async function getDebugInstructorToken(env: Env) {
 	// Generate debug instructor token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'qUVYul1QVCY3GV4aGbykkafLDSv2',
+		uid: 'qCe2yDD3M9epIkbUwSy77S9CXBt2',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
@@ -51,15 +51,17 @@ export async function getDebugInstructorToken(env: Env) {
 // })) as string;
 // }
 
-// export async function getFirestoreData(env: Env) {
-// 	const idToken = await getIdToken({
-// 		credentials: JSON.stringify(firebaseSecret),
-// 		uid: 1,
-// 		apiKey: env.FIREBASE_API_KEY,
-// 	});
+interface UserDataFirebaseDB {
+	readonly courseId: string;
+	readonly name: string;
+	readonly type: 'STUDENT' | 'INSTRUCTOR' | 'NONE';
+}
 
-// 	const prefixURL = `https://firestore.googleapis.com/v1/projects/${env.GOOGLE_CLOUD_PROJECT}/databases/(default)/documents`;
-// 	const res = await fetch(`${prefixURL}/cities/LA`, {
-// 		headers: { Authorization: `Bearer ${idToken}` },
-// 	});
-// }
+export async function getUserDataFromFirebaseDB(userId: string, userBearerToken: string): Promise<UserDataFirebaseDB> {
+	try {
+		const prefixURL = `https://kotlin-khaos-default-rtdb.firebaseio.com`;
+		return (await fetch(`${prefixURL}/users/${userId}.json?auth=${userBearerToken}`)).json();
+	} catch (err) {
+		throw new Error('Error fetching user data');
+	}
+}

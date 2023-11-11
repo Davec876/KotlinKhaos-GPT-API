@@ -1,6 +1,6 @@
 import type Course from './Course';
 import type { Env } from '../index';
-import type { FirebaseUserToken } from '../services/firebase';
+import { getUserDataFromFirebaseDB, type FirebaseUserToken } from '../services/firebase';
 
 // Course for interacting with firebase user
 export default class User {
@@ -29,26 +29,15 @@ export default class User {
 		return this.type;
 	}
 
-	public static async getUserFromToken(env: Env, userToken: FirebaseUserToken) {
-		// TODO: Fetch user from firebase db through service module
-		// const res = await env.CONVERSATIONS.get(conversationId);
-		// if (!res) {
-		// 	return null;
-		// }
-		// const parsedRes = JSON.parse(res);
-		// return new User(parsedRes.id, parsedRes.courseId, parsedRes.name);
-		// TODO: Hardcode fake values for now
-		const fakeUserRes = {
-			courseId: '1',
-			name: '',
-			type: 'student' as const,
-		};
+	public static async getUserFromToken(userToken: FirebaseUserToken, userBearerToken: string) {
+		const userDataFirebaseDB = await getUserDataFromFirebaseDB(userToken.user_id, userBearerToken);
 
-		const name = userToken.name ?? fakeUserRes.name;
-		const type = userToken.user_id === 'qUVYul1QVCY3GV4aGbykkafLDSv2' ? 'instructor' : fakeUserRes.type;
-		const courseId = userToken.user_id === '0P1OnA2OPxSKBqOlE4rtptSozrF2' ? '2' : fakeUserRes.courseId;
+		if (userDataFirebaseDB.type === 'NONE') {
+			throw new Error('Failed parsing user type');
+		}
 
-		return new User(userToken.user_id, courseId, name, type);
+		const userType = userDataFirebaseDB.type.toLowerCase() as User['type'];
+		return new User(userToken.user_id, userDataFirebaseDB.courseId, userDataFirebaseDB.name, userType);
 	}
 
 	// Load user from firebase db

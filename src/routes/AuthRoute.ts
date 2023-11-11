@@ -17,7 +17,7 @@ export async function authRoute(req: IRequest, env: Env, ctx: ExecutionContext) 
 
 		if (bearer && bearer !== 'debugStudent' && bearer !== 'debugInstructor') {
 			const userToken = await verifyToken(bearer, ctx);
-			env.REQ_USER = await User.getUserFromToken(env, userToken);
+			env.REQ_USER = await User.getUserFromToken(userToken, bearer);
 			return;
 		}
 
