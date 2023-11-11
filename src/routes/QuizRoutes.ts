@@ -28,6 +28,7 @@ export class CreateQuizInstructorRoute extends OpenAPIRoute {
 			'200': {
 				schema: {
 					quizId: Str,
+					firstQuestion: Str
 				},
 				description: 'Successfull response',
 			},
@@ -41,7 +42,7 @@ export class CreateQuizInstructorRoute extends OpenAPIRoute {
 		// TODO: Add typeguard later
 		const quizOptions: QuizOptions = context.body.options;
 		const quiz = await Quiz.newQuiz(env, author, quizOptions);
-		return { quizId: quiz.getId() };
+		return { quizId: quiz.getId(), firstQuestion: quiz.getQuestions()[0].content };
 	}
 }
 

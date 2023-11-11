@@ -1,6 +1,6 @@
 import Course, { type CourseInfoSnapshotForQuiz } from './Course';
 import { createNewQuiz, getNextQuestion } from '../services/openAi/openAiQuiz';
-import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
 import type QuizAttempt from './QuizAttempt';
@@ -29,7 +29,7 @@ export default class Quiz {
 	private name: string;
 	private startedAttemptsUserIds: Set<User['id']>;
 	private finishedUserAttempts: Map<User['id'], FinishedUserAttempt>;
-	private questions: ChatCompletionMessage[];
+	private questions: ChatCompletionMessageParam[];
 	private startedAt?: Date;
 	private finishedAt?: Date;
 
@@ -133,7 +133,7 @@ export default class Quiz {
 	private setFinishedAt(finishedAt: Date) {
 		this.finishedAt = finishedAt;
 	}
-	private setQuestions(questions: ChatCompletionMessage[]) {
+	private setQuestions(questions: ChatCompletionMessageParam[]) {
 		this.questions = questions;
 	}
 	public getQuizAttemptScoreViewForStudent(user: User) {
@@ -178,7 +178,7 @@ export default class Quiz {
 			finishedUserAttempts,
 		};
 	}
-	private async addQuestion(question: ChatCompletionMessage) {
+	private async addQuestion(question: ChatCompletionMessageParam) {
 		this.questions.push(question);
 	}
 	private static validateNewQuizConditions(quizOptions: QuizOptions, user: User) {
@@ -371,7 +371,7 @@ export default class Quiz {
 			if (question.length > 300) {
 				throw new KotlinKhaosAPIError('Please shorten your questions', 400);
 			}
-			const userMessage: ChatCompletionMessage = {
+			const userMessage: ChatCompletionMessageParam = {
 				content: question,
 				role: 'user',
 			};

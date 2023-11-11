@@ -5,7 +5,7 @@ import {
 	giveFinalScoreFromConversation,
 } from '../services/openAi/openAiPracticeQuizConversation';
 import Course, { type CourseInfoSnapshotForQuiz } from './Course';
-import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
@@ -20,7 +20,7 @@ export default class PracticeQuiz {
 	private readonly questionLimit: number;
 	private state: 'awaitingUserResponse' | 'assistantResponded' | 'completed';
 	private currentQuestionNumber: number;
-	private history: ChatCompletionMessage[];
+	private history: ChatCompletionMessageParam[];
 
 	private constructor(
 		id: PracticeQuiz['id'],
@@ -30,7 +30,7 @@ export default class PracticeQuiz {
 		questionLimit: PracticeQuiz['questionLimit'],
 		state: PracticeQuiz['state'],
 		currentQuestionNumber: PracticeQuiz['currentQuestionNumber'],
-		history: ChatCompletionMessage[]
+		history: ChatCompletionMessageParam[]
 	) {
 		this.id = id;
 		this.userId = userId;
@@ -89,11 +89,11 @@ export default class PracticeQuiz {
 		}
 		return { message: this.getLatestContent() };
 	}
-	private async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage[]) {
+	private async appendMessagesToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessageParam[]) {
 		this.setState(state);
 		this.history = this.history.concat(message);
 	}
-	private async appendMessageToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessage) {
+	private async appendMessageToHistory(env: Env, state: PracticeQuiz['state'], message: ChatCompletionMessageParam) {
 		this.setState(state);
 		this.history.push(message);
 	}
