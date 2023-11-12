@@ -105,7 +105,7 @@ export default class PracticeQuiz {
 	}
 
 	public static async newQuiz(env: Env, user: User, prompt: string) {
-		if (prompt.length > 20) {
+		if (prompt.length > 40) {
 			throw new KotlinKhaosAPIError('Prompt is too long', 400);
 		}
 

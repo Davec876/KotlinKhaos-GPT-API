@@ -186,7 +186,7 @@ export default class Quiz {
 			throw new KotlinKhaosAPIError("Only instructors may create quiz's", 403);
 		}
 
-		if (quizOptions.prompt.length > 20) {
+		if (quizOptions.prompt.length > 40) {
 			throw new KotlinKhaosAPIError('Prompt is too long', 400);
 		}
 
