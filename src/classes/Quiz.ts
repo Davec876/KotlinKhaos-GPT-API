@@ -221,7 +221,10 @@ export default class Quiz {
 				startedAt,
 				finishedAt,
 				questions,
-			})
+			}),
+			{
+				expirationTtl: 86400,
+			}
 		).catch((err) => {
 			console.error(err);
 			throw new KotlinKhaosAPIError('Error creating new quiz', 500);
@@ -378,7 +381,7 @@ export default class Quiz {
 			return userMessage;
 		});
 		this.setQuestions(userQuestionMessages);
-		await this.saveStateToKv(env);
+		await this.saveStateToKvAndExpire(env);
 	}
 
 	private validateFinishQuizConditions(user: User) {
@@ -413,6 +416,17 @@ export default class Quiz {
 		const finishedAtTime = new Date();
 		this.setFinishedAt(finishedAtTime);
 		await this.saveStateToKv(env);
+	}
+
+	// This is used primarily for editQuiz, since we still want to expire unstarted edited quizs
+	// editQuiz can only be used on unstarted quizs
+	private async saveStateToKvAndExpire(env: Env) {
+		await env.QUIZS.put(this.getId(), this.toString(), {
+			expirationTtl: 86400,
+		}).catch((err) => {
+			console.error(err);
+			throw new KotlinKhaosAPIError('Error saving quiz state', 500);
+		});
 	}
 
 	private async saveStateToKv(env: Env) {

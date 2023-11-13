@@ -26,6 +26,12 @@ export class GetCourseQuizsInstructorRoute extends OpenAPIRoute {
 							name: Str,
 							started: Bool,
 							finished: Bool,
+							questions: [
+								{
+									content: Str,
+									role: Str,
+								},
+							],
 							startedAttemptsUserIds: [Str],
 							finishedUserAttempts: [
 								{

@@ -77,7 +77,7 @@ export default class Course {
 				name: 'Fake Course Name',
 				educationLevel: 'Elementary',
 				description: 'Learning about plants, nature and wildlife on our planet',
-				studentIds: ['0P1OnA2OPxSKBqOlE4rtptSozrF2'],
+				studentIds: ['p7d59NqhvKe9NXsdifU1DJLLe632'],
 				quizIds: [],
 			};
 			const elementaryStudentIds: Set<string> = new Set(fakeElementaryCourseRes.studentIds);
@@ -96,13 +96,13 @@ export default class Course {
 
 		// TODO: Hardcode fake values for now
 		const fakeUniversityCourseRes = {
-			instructorId: 'rkIyTsb1avUYH5QYmIArZbxqQgE2',
+			instructorId: 'qCe2yDD3M9epIkbUwSy77S9CXBt2',
 			name: 'Fake Course Name',
 			educationLevel: 'University',
 			description:
 				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
-			studentIds: ['rkIyTsb1avUYH5QYmIArZbxqQgE2'],
-			quizIds: ['a39a665e-4da5-4048-a2a5-a55690bb0805', '1c8c9598-d458-4778-82cf-89e38061fb45'],
+			studentIds: ['qCe2yDD3M9epIkbUwSy77S9CXBt2', 'Ey3M3insFkYi7eeKBLFnUMHlom32'],
+			quizIds: ['c9bb8e17-8bae-47ef-a0e4-84f1f62f8374', 'f2acf47f-7791-47e9-a1b8-cb3c37a3faca', 'faa77034-bfb7-4cc3-9a8d-eb4cc4a9caa6'],
 		};
 
 		const universityStudentIds: Set<string> = new Set(fakeUniversityCourseRes.studentIds);
@@ -113,8 +113,8 @@ export default class Course {
 			fakeUniversityCourseRes.name,
 			fakeUniversityCourseRes.educationLevel,
 			fakeUniversityCourseRes.description,
-			universityQuizIds,
-			universityStudentIds
+			universityStudentIds,
+			universityQuizIds
 		);
 
 		// return new Course(courseId, parsedRes.instructorId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);
