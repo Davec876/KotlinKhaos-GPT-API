@@ -24,7 +24,9 @@ export class CreateQuizAttemptStudentRoute extends OpenAPIRoute {
 		responses: {
 			'200': {
 				schema: {
+					quizName: Str,
 					quizAttemptId: Str,
+					questions: [Str],
 				},
 				description: 'Successfull response',
 			},
@@ -36,7 +38,10 @@ export class CreateQuizAttemptStudentRoute extends OpenAPIRoute {
 		const user = env.REQ_USER;
 
 		const quizAttempt = await QuizAttempt.newQuizAttempt(env, user, quizId);
-		return { quizAttemptId: quizAttempt.getId() };
+		const questions = quizAttempt.getQuizQuestions().map(({ content }) => content);
+		const quizName = (await Quiz.getQuiz(env, quizId)).getName()
+
+		return { quizName, quizAttemptId: quizAttempt.getId(), questions };
 	}
 }
 

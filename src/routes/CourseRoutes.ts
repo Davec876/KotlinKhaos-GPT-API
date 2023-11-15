@@ -101,7 +101,7 @@ export class GetCourseWeeklyQuizsSummaryForStudentRoute extends OpenAPIRoute {
 		responses: {
 			'200': {
 				schema: {
-					'weekly-summary': {
+					'weeklySummary': {
 						sat: {
 							averageScore: Num,
 							quizs: [
@@ -123,6 +123,6 @@ export class GetCourseWeeklyQuizsSummaryForStudentRoute extends OpenAPIRoute {
 	async handle(req: IRequest, env: Env) {
 		const student = env.REQ_USER;
 		const course = await Course.getCourse(env, student.getCourseId());
-		return { 'weekly-summary': await course.getWeeklyQuizsSummaryForCourseStudentView(env, student) };
+		return { 'weeklySummary': await course.getWeeklyQuizsSummaryForCourseStudentView(env, student) };
 	}
 }

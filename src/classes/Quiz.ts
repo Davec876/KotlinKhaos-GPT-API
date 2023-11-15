@@ -79,7 +79,7 @@ export default class Quiz {
 	public getQuestionLimit() {
 		return this.questionLimit;
 	}
-	private getName() {
+	public getName() {
 		return this.name;
 	}
 	private getStartedAttemptsUserIds() {
