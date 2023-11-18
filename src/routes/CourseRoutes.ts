@@ -39,6 +39,7 @@ export class GetCourseQuizsInstructorRoute extends OpenAPIRoute {
 									studentId: Str,
 									score: Num,
 									submittedOn: Date,
+									name: Str,
 								},
 							],
 						},

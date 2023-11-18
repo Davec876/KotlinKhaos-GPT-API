@@ -138,9 +138,10 @@ export default class Course {
 			quizPromises.push(Quiz.getQuiz(env, quizId));
 		});
 		const quizs = await Promise.all(quizPromises);
-		return quizs.map((quiz) => {
-			return quiz.getQuizViewForInstructor(user);
+		const quizsForInstructorViewPromises = quizs.map((quiz) => {
+			return quiz.getQuizViewForInstructor(env, user);
 		});
+		return Promise.all(quizsForInstructorViewPromises);
 	}
 
 	public async getAllQuizsForCourseStudentView(env: Env, user: User) {
