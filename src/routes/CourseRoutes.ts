@@ -23,6 +23,7 @@ export class GetCourseQuizsInstructorRoute extends OpenAPIRoute {
 					quizs: [
 						{
 							id: Str,
+							authorId: Str,
 							name: Str,
 							started: Bool,
 							finished: Bool,
@@ -69,6 +70,7 @@ export class GetCourseQuizsStudentRoute extends OpenAPIRoute {
 					quizs: [
 						{
 							id: Str,
+							authorId: Str,
 							name: Str,
 							started: Bool,
 							finished: Bool,
@@ -77,6 +79,7 @@ export class GetCourseQuizsStudentRoute extends OpenAPIRoute {
 								studentId: Str,
 								score: Num,
 								submittedOn: Date,
+								name: Str,
 							},
 						},
 					],
@@ -102,7 +105,7 @@ export class GetCourseWeeklyQuizsSummaryForStudentRoute extends OpenAPIRoute {
 		responses: {
 			'200': {
 				schema: {
-					'weeklySummary': {
+					weeklySummary: {
 						sat: {
 							averageScore: Num,
 							quizs: [
@@ -124,6 +127,6 @@ export class GetCourseWeeklyQuizsSummaryForStudentRoute extends OpenAPIRoute {
 	async handle(req: IRequest, env: Env) {
 		const student = env.REQ_USER;
 		const course = await Course.getCourse(env, student.getCourseId());
-		return { 'weeklySummary': await course.getWeeklyQuizsSummaryForCourseStudentView(env, student) };
+		return { weeklySummary: await course.getWeeklyQuizsSummaryForCourseStudentView(env, student) };
 	}
 }

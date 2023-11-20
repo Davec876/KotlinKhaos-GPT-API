@@ -2,8 +2,18 @@ name = "kotlin-khaos-api"
 main = "src/index.ts"
 compatibility_date = "2023-11-19"
 workers_dev = false
-
 routes = [{ pattern = "kotlin-khaos-api.maximoguk.com", custom_domain = true }]
+
+# Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
+# Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
+kv_namespaces = [
+    { binding = "QUIZS", id = "52fbf03219c24833bf2982c50583785c", preview_id = "52fbf03219c24833bf2982c50583785c" },
+    { binding = "QUIZ_ATTEMPTS", id = "249b8b3cf3ba46a7a8f4a685eb534832", preview_id = "249b8b3cf3ba46a7a8f4a685eb534832" },
+    { binding = "PRACTICE_QUIZ_CONVERSATIONS", id = "7b04352cf94844c4b9b2a24c8c483f37", preview_id = "7b04352cf94844c4b9b2a24c8c483f37" }
+]
+
+[env.beta]
+routes = [{ pattern = "beta-kotlin-khaos-api.maximoguk.com", custom_domain = true }]
 
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv

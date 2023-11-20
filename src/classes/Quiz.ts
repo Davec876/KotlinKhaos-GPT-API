@@ -156,6 +156,7 @@ export default class Quiz {
 		const usersAttempt = this.getFinishedUserAttempts().get(user.getId()) ?? null;
 		return {
 			id: this.getId(),
+			authorId: this.getAuthorId(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),
@@ -179,6 +180,7 @@ export default class Quiz {
 		const finishedUserAttemptsWithNames = Object.fromEntries(finishedUserAttempts.entries());
 		return {
 			id: this.getId(),
+			authorId: this.getAuthorId(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),

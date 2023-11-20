@@ -107,6 +107,7 @@ export default class Course {
 				'f2acf47f-7791-47e9-a1b8-cb3c37a3faca',
 				'faa77034-bfb7-4cc3-9a8d-eb4cc4a9caa6',
 				'94adedb5-9f34-4cd1-9115-e4d03c6fddd2',
+				'29ce08e4-f237-4c03-bea4-ef185743935f',
 			],
 		};
 
