@@ -102,7 +102,12 @@ export default class Course {
 			description:
 				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
 			studentIds: ['qCe2yDD3M9epIkbUwSy77S9CXBt2', 'Ey3M3insFkYi7eeKBLFnUMHlom32'],
-			quizIds: ['c9bb8e17-8bae-47ef-a0e4-84f1f62f8374', 'f2acf47f-7791-47e9-a1b8-cb3c37a3faca', 'faa77034-bfb7-4cc3-9a8d-eb4cc4a9caa6'],
+			quizIds: [
+				'c9bb8e17-8bae-47ef-a0e4-84f1f62f8374',
+				'f2acf47f-7791-47e9-a1b8-cb3c37a3faca',
+				'faa77034-bfb7-4cc3-9a8d-eb4cc4a9caa6',
+				'94adedb5-9f34-4cd1-9115-e4d03c6fddd2',
+			],
 		};
 
 		const universityStudentIds: Set<string> = new Set(fakeUniversityCourseRes.studentIds);

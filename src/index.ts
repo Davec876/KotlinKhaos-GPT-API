@@ -42,6 +42,7 @@ import {
 	GetCourseQuizsStudentRoute,
 	GetCourseWeeklyQuizsSummaryForStudentRoute,
 } from './routes/CourseRoutes';
+import { GetUploadPresignedUrlForUserProfilePicture } from './routes/UserRoutes';
 import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
@@ -49,6 +50,9 @@ export interface Env {
 	GPT_4: string;
 	OPENAI_API_TOKEN: string;
 	FIREBASE_API_KEY: string;
+	ACCOUNT_ID: string;
+	ACCESS_KEY_ID: string;
+	SECRET_ACCESS_KEY: string;
 	REQ_USER: User;
 	QUIZS: KVNamespace;
 	QUIZ_ATTEMPTS: KVNamespace;
@@ -143,6 +147,9 @@ router
 
 	// GET weekly course quizs summary for student
 	.get('/student/course/quizs/weekly-summary', GetCourseWeeklyQuizsSummaryForStudentRoute)
+
+	// GET retrieve a s3 presigned upload url to upload a profile picture for the user
+	.get('/user/profile-picture/upload', GetUploadPresignedUrlForUserProfilePicture)
 
 	// 404 for everything else
 	.all('*', () => error(404));

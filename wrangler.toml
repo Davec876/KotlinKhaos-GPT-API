@@ -1,6 +1,6 @@
 name = "kotlin-khaos-api"
 main = "src/index.ts"
-compatibility_date = "2023-10-05"
+compatibility_date = "2023-11-19"
 workers_dev = false
 
 routes = [{ pattern = "kotlin-khaos-api.maximoguk.com", custom_domain = true }]
