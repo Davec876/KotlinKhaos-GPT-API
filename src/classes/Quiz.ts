@@ -217,9 +217,7 @@ export default class Quiz {
 
 		const question = await createNewQuiz(env, authorsCourse, quizOptions.prompt);
 		const questions = [question];
-
-		const saveCoursePromise = authorsCourse.saveCourseWithNewQuiz(env, author.getId(), quizId);
-		const saveToKvPromise = env.QUIZS.put(
+		await env.QUIZS.put(
 			quizId,
 			JSON.stringify({
 				authorId: author.getId(),
@@ -242,7 +240,6 @@ export default class Quiz {
 			throw new KotlinKhaosAPIError('Error creating new quiz', 500);
 		});
 
-		await Promise.all([saveCoursePromise, saveToKvPromise]);
 		return new Quiz(
 			quizId,
 			author.getId(),
@@ -344,7 +341,11 @@ export default class Quiz {
 		this.validateQuizStartConditions(user);
 		const startedAtTime = new Date();
 		this.setStartedAt(startedAtTime);
-		await this.saveStateToKv(env);
+		const usersCourse = await Course.getCourse(env, user.getId(), this.getCourseId());
+
+		const saveCoursePromise = usersCourse.saveCourseWithNewQuiz(env, user.getId(), this.getId());
+		const saveStateToKvPromise = this.saveStateToKv(env);
+		await Promise.all([saveCoursePromise, saveStateToKvPromise]);
 		return true;
 	}
 
