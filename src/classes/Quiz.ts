@@ -208,7 +208,7 @@ export default class Quiz {
 	public static async newQuiz(env: Env, author: User, quizOptions: QuizOptions) {
 		this.validateNewQuizConditions(quizOptions, author);
 		const quizId = crypto.randomUUID();
-		const authorsCourse = await Course.getCourse(env, author.getCourseId());
+		const authorsCourse = await Course.getCourse(env, author.getId(), author.getCourseId());
 		const authorsCourseInfo = authorsCourse.getCourseInfoSnapshotForQuiz();
 		const startedAttemptsUserIds: Set<string> = new Set();
 		const finishedUserAttempts: Map<string, FinishedUserAttempt> = new Map();
@@ -218,7 +218,8 @@ export default class Quiz {
 		const question = await createNewQuiz(env, authorsCourse, quizOptions.prompt);
 		const questions = [question];
 
-		await env.QUIZS.put(
+		const saveCoursePromise = authorsCourse.saveCourseWithNewQuiz(env, author.getId(), quizId);
+		const saveToKvPromise = env.QUIZS.put(
 			quizId,
 			JSON.stringify({
 				authorId: author.getId(),
@@ -241,6 +242,7 @@ export default class Quiz {
 			throw new KotlinKhaosAPIError('Error creating new quiz', 500);
 		});
 
+		await Promise.all([saveCoursePromise, saveToKvPromise]);
 		return new Quiz(
 			quizId,
 			author.getId(),
@@ -408,7 +410,7 @@ export default class Quiz {
 		this.validateFinishQuizConditions(user);
 		this.clearStartedAttempts();
 
-		const authorsCourse = await Course.getCourse(env, this.getCourseId());
+		const authorsCourse = await Course.getCourse(env, user.getId(), this.getCourseId());
 		const studentIds = authorsCourse.getStudentIds();
 
 		// Assign 0 as user's score if user did not finish the quiz

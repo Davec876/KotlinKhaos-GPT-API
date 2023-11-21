@@ -54,7 +54,7 @@ export class GetCourseQuizsInstructorRoute extends OpenAPIRoute {
 
 	async handle(req: IRequest, env: Env) {
 		const instructor = env.REQ_USER;
-		const course = await Course.getCourse(env, instructor.getCourseId());
+		const course = await Course.getCourse(env, instructor.getId(), instructor.getCourseId());
 		return { quizs: await course.getAllQuizsForCourseInstructorView(env, instructor) };
 	}
 }
@@ -92,7 +92,7 @@ export class GetCourseQuizsStudentRoute extends OpenAPIRoute {
 
 	async handle(req: IRequest, env: Env) {
 		const student = env.REQ_USER;
-		const course = await Course.getCourse(env, student.getCourseId());
+		const course = await Course.getCourse(env, student.getId(), student.getCourseId());
 		return { quizs: await course.getAllQuizsForCourseStudentView(env, student) };
 	}
 }
@@ -126,7 +126,7 @@ export class GetCourseWeeklyQuizsSummaryForStudentRoute extends OpenAPIRoute {
 
 	async handle(req: IRequest, env: Env) {
 		const student = env.REQ_USER;
-		const course = await Course.getCourse(env, student.getCourseId());
+		const course = await Course.getCourse(env, student.getId(), student.getCourseId());
 		return { weeklySummary: await course.getWeeklyQuizsSummaryForCourseStudentView(env, student) };
 	}
 }

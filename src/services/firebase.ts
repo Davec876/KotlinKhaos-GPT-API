@@ -5,6 +5,7 @@
 import { getIdToken, getAccessToken, verifyIdToken } from 'web-auth-library/google';
 import firebaseSecret from '../../firebase-secret.json';
 import type { Env } from '../index';
+import type User from '../classes/User';
 
 // Sourced from https://github.com/kriasoft/web-auth-library/blob/main/google/idToken.ts#L249
 export interface FirebaseUserToken {
@@ -27,7 +28,7 @@ export async function getDebugUserToken(env: Env) {
 	// Generate debug user token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'Ey3M3insFkYi7eeKBLFnUMHlom32',
+		uid: 'eAS67mMfVYNOW4miSVDKwkSqqTa2',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
@@ -37,7 +38,7 @@ export async function getDebugInstructorToken(env: Env) {
 	// Generate debug instructor token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'qCe2yDD3M9epIkbUwSy77S9CXBt2',
+		uid: 'm6EuyefdsuVSMVCWyDjyrhReKT22',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
@@ -72,5 +73,39 @@ export async function getUserDataFromFirebaseDB(userId: string, userBearerToken:
 		return (await fetch(`${prefixURL}/users/${userId}.json?auth=${userBearerToken}`)).json();
 	} catch (err) {
 		throw new Error('Error fetching user data');
+	}
+}
+
+export interface CourseDataFirebaseDB {
+	readonly id: string;
+	readonly instructorId: User['id'];
+	readonly name: string;
+	readonly educationLevel: 'UNIVERSITY' | 'ELEMENTARY' | 'HIGH_SCHOOL' | 'NONE';
+	readonly description: string;
+	readonly studentIds: string[];
+	readonly quizIds: string[];
+}
+
+export async function getCourseDataFromFirebaseDB(courseId: string, userBearerToken: string): Promise<CourseDataFirebaseDB> {
+	try {
+		const prefixURL = `https://kotlin-khaos-default-rtdb.firebaseio.com`;
+		return (await fetch(`${prefixURL}/courses/${courseId}.json?auth=${userBearerToken}`)).json();
+	} catch (err) {
+		throw new Error('Error fetching course data');
+	}
+}
+
+export async function saveCourseDataToFirebaseDB(courseData: CourseDataFirebaseDB, userBearerToken: string) {
+	try {
+		const prefixURL = `https://kotlin-khaos-default-rtdb.firebaseio.com`;
+		await fetch(`${prefixURL}/courses/${courseData.id}.json?auth=${userBearerToken}`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(courseData),
+		});
+	} catch (err) {
+		throw new Error('Error fetching course data');
 	}
 }

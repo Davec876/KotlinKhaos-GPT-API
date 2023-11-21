@@ -2,6 +2,12 @@ import Quiz from './Quiz';
 import type { Env } from '../index';
 import type User from './User';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
+import {
+	type CourseDataFirebaseDB,
+	getCourseDataFromFirebaseDB,
+	getTokenForUserId,
+	saveCourseDataToFirebaseDB,
+} from '../services/firebase';
 
 export interface CourseInfoSnapshotForQuiz {
 	readonly id: string;
@@ -14,7 +20,7 @@ export default class Course {
 	private readonly id: string;
 	private readonly instructorId: User['id'];
 	private readonly name: string;
-	private readonly educationLevel: string;
+	private readonly educationLevel: 'UNIVERSITY' | 'ELEMENTARY' | 'HIGH_SCHOOL';
 	private readonly description: string;
 	private readonly studentIds: Set<User['id']>;
 	private readonly quizIds: Set<Quiz['id']>;
@@ -61,69 +67,56 @@ export default class Course {
 	public getCourseInfoSnapshotForQuiz(): CourseInfoSnapshotForQuiz {
 		return { id: this.getId(), educationLevel: this.getEducationLevel(), description: this.getDescription() };
 	}
+
 	// Load course from firebase db
-	public static async getCourse(env: Env, courseId: string) {
-		// TODO: Fetch course from firebase db through service module
-		// const res = await env.CONVERSATIONS.get(conversationId);
-		// if (!res) {
-		// 	return null;
-		// }
-		// const parsedRes = JSON.parse(res);
+	public static async getCourse(env: Env, userId: string, courseId: string) {
+		const serviceToken = await getTokenForUserId(env, userId);
+		const courseDataFirebaseDB = await getCourseDataFromFirebaseDB(courseId, serviceToken);
 
-		// TODO: Hardcode fake values for now
-		if (courseId === '2') {
-			const fakeElementaryCourseRes = {
-				instructorId: '0P1OnA2OPxSKBqOlE4rtptSozrF2',
-				name: 'Fake Course Name',
-				educationLevel: 'Elementary',
-				description: 'Learning about plants, nature and wildlife on our planet',
-				studentIds: ['p7d59NqhvKe9NXsdifU1DJLLe632'],
-				quizIds: [],
-			};
-			const elementaryStudentIds: Set<string> = new Set(fakeElementaryCourseRes.studentIds);
-			const elementaryQuizIds: Set<string> = new Set(fakeElementaryCourseRes.quizIds);
+		if (courseDataFirebaseDB.educationLevel === 'NONE') {
+			throw new Error('Failed parsing user type');
+		}
+		let studentIds: Set<User['id']>;
+		let quizIds: Set<User['id']>;
 
-			return new Course(
-				courseId,
-				fakeElementaryCourseRes.instructorId,
-				fakeElementaryCourseRes.name,
-				fakeElementaryCourseRes.educationLevel,
-				fakeElementaryCourseRes.description,
-				elementaryStudentIds,
-				elementaryQuizIds
-			);
+		// Convert back to Set
+		if (!courseDataFirebaseDB.quizIds) {
+			quizIds = new Set();
+		} else {
+			quizIds = new Set(courseDataFirebaseDB.quizIds);
+		}
+		if (!courseDataFirebaseDB.studentIds) {
+			studentIds = new Set();
+		} else {
+			studentIds = new Set(courseDataFirebaseDB.studentIds);
 		}
 
-		// TODO: Hardcode fake values for now
-		const fakeUniversityCourseRes = {
-			instructorId: 'qCe2yDD3M9epIkbUwSy77S9CXBt2',
-			name: 'Fake Course Name',
-			educationLevel: 'University',
-			description:
-				'Principles of mobile computing and the concepts and techniques underlying the design and development of mobile computing applications utilizing Kotlin and android.',
-			studentIds: ['qCe2yDD3M9epIkbUwSy77S9CXBt2', 'Ey3M3insFkYi7eeKBLFnUMHlom32'],
-			quizIds: [
-				'c9bb8e17-8bae-47ef-a0e4-84f1f62f8374',
-				'f2acf47f-7791-47e9-a1b8-cb3c37a3faca',
-				'faa77034-bfb7-4cc3-9a8d-eb4cc4a9caa6',
-				'94adedb5-9f34-4cd1-9115-e4d03c6fddd2',
-				'29ce08e4-f237-4c03-bea4-ef185743935f',
-			],
-		};
-
-		const universityStudentIds: Set<string> = new Set(fakeUniversityCourseRes.studentIds);
-		const universityQuizIds: Set<string> = new Set(fakeUniversityCourseRes.quizIds);
+		const educationLevel = courseDataFirebaseDB.educationLevel.toLowerCase() as Course['educationLevel'];
 		return new Course(
 			courseId,
-			fakeUniversityCourseRes.instructorId,
-			fakeUniversityCourseRes.name,
-			fakeUniversityCourseRes.educationLevel,
-			fakeUniversityCourseRes.description,
-			universityStudentIds,
-			universityQuizIds
+			courseDataFirebaseDB.instructorId,
+			courseDataFirebaseDB.name,
+			educationLevel,
+			courseDataFirebaseDB.description,
+			studentIds,
+			quizIds
 		);
+	}
 
-		// return new Course(courseId, parsedRes.instructorId, parsedRes.name, parsedRes.educationLevel, parsedRes.description, parsedRes.userIds, parsedRes.quizIds);
+	// save course to firebase db with new quiz
+	public async saveCourseWithNewQuiz(env: Env, userId: string, quizId: string) {
+		this.quizIds.add(quizId);
+		const serviceToken = await getTokenForUserId(env, userId);
+		const courseData: CourseDataFirebaseDB = {
+			id: this.getId(),
+			instructorId: this.getInstructorId(),
+			name: this.getName(),
+			educationLevel: this.getEducationLevel().toUpperCase() as Course['educationLevel'],
+			description: this.getDescription(),
+			studentIds: [...this.getStudentIds()],
+			quizIds: [...this.getQuizIds()],
+		};
+		await saveCourseDataToFirebaseDB(courseData, serviceToken);
 	}
 
 	public async getAllQuizsForCourseInstructorView(env: Env, user: User) {

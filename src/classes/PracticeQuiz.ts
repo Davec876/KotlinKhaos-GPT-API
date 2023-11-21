@@ -113,7 +113,7 @@ export default class PracticeQuiz {
 		const questionLimit = 3;
 		const state = 'awaitingUserResponse';
 		const currentQuestionNumber = 1;
-		const usersCourse = await Course.getCourse(env, user.getCourseId());
+		const usersCourse = await Course.getCourse(env, user.getId(), user.getCourseId());
 		const usersCourseInfo = usersCourse.getCourseInfoSnapshotForQuiz();
 		const question = await createNewConversation(env, usersCourseInfo, prompt);
 		const history = [question];
