@@ -2,8 +2,8 @@ import Course, { type CourseInfoSnapshotForQuiz } from './Course';
 import { createNewQuiz, getNextQuestion } from '../services/openAi/openAiQuiz';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
-import type User from './User';
 import type QuizAttempt from './QuizAttempt';
+import User from './User';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 
 interface FinishedUserAttempt {
@@ -156,26 +156,37 @@ export default class Quiz {
 		const usersAttempt = this.getFinishedUserAttempts().get(user.getId()) ?? null;
 		return {
 			id: this.getId(),
+			authorId: this.getAuthorId(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),
 			usersAttempt: usersAttempt,
 		};
 	}
-	public getQuizViewForInstructor(user: User) {
+	public async getQuizViewForInstructor(env: Env, user: User) {
 		if (!this.checkIfUserIsAuthor(user)) {
 			throw new KotlinKhaosAPIError("Only the quiz author can view this quiz's details", 403);
 		}
 		const startedAttemptsUserIds = [...this.getStartedAttemptsUserIds()];
-		const finishedUserAttempts = Object.fromEntries(this.getFinishedUserAttempts().entries());
+		const finishedUserAttempts = this.getFinishedUserAttempts();
+		const finishedUserIds = finishedUserAttempts.keys();
+
+		for await (const userId of finishedUserIds) {
+			const user = await User.getUser(env, userId);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(finishedUserAttempts.get(userId) as any).name = user.getName();
+		}
+
+		const finishedUserAttemptsWithNames = Object.fromEntries(finishedUserAttempts.entries());
 		return {
 			id: this.getId(),
+			authorId: this.getAuthorId(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),
 			questions: this.getQuestions(),
 			startedAttemptsUserIds,
-			finishedUserAttempts,
+			finishedUserAttempts: finishedUserAttemptsWithNames,
 		};
 	}
 	private async addQuestion(question: ChatCompletionMessageParam) {

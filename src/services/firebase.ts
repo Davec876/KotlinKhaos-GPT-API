@@ -43,6 +43,15 @@ export async function getDebugInstructorToken(env: Env) {
 	return tokenRes.idToken as string;
 }
 
+export async function getTokenForUserId(env: Env, userId: string) {
+	const tokenRes = await getIdToken({
+		credentials: JSON.stringify(firebaseSecret),
+		uid: userId,
+		apiKey: env.FIREBASE_API_KEY,
+	});
+	return tokenRes.idToken as string;
+}
+
 // export async function getServiceToken() {
 // This method advises us to use waitUntil, however it doesn't seem to work properly on first request
 // return (await getAccessToken({

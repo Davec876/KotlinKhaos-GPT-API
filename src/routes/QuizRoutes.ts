@@ -188,6 +188,7 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 								studentId: Str,
 								score: Num,
 								submittedOn: Date,
+								name: Str,
 							},
 						],
 					},
@@ -202,7 +203,7 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 		const instructor = env.REQ_USER;
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
-		return { quiz: quiz.getQuizViewForInstructor(instructor) };
+		return { quiz: quiz.getQuizViewForInstructor(env, instructor) };
 	}
 }
 

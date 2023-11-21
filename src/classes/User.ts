@@ -1,6 +1,6 @@
 import type Course from './Course';
 import type { Env } from '../index';
-import { getUserDataFromFirebaseDB, type FirebaseUserToken } from '../services/firebase';
+import { getUserDataFromFirebaseDB, type FirebaseUserToken, getTokenForUserId } from '../services/firebase';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
@@ -27,7 +27,7 @@ export default class User {
 	public getProfilePicture(env: Env) {
 		return this.getPresignedProfilePictureUrl(env);
 	}
-	private getName() {
+	public getName() {
 		return this.name;
 	}
 	public getType() {
@@ -47,21 +47,15 @@ export default class User {
 
 	// Load user from firebase db
 	public static async getUser(env: Env, userId: string) {
-		// TODO: Fetch user from firebase db through service module
-		// const res = await env.CONVERSATIONS.get(conversationId);
-		// if (!res) {
-		// 	return null;
-		// }
-		// const parsedRes = JSON.parse(res);
-		// return new User(parsedRes.id, parsedRes.courseId, parsedRes.name);
-		// TODO: Hardcode fake values for now
-		const fakeUserRes = {
-			courseId: '1',
-			name: 'Test User',
-			type: 'student' as const,
-		};
+		const serviceToken = await getTokenForUserId(env, userId);
+		const userDataFirebaseDB = await getUserDataFromFirebaseDB(userId, serviceToken);
 
-		return new User(userId, fakeUserRes.courseId, fakeUserRes.name, fakeUserRes.type);
+		if (userDataFirebaseDB.type === 'NONE') {
+			throw new Error('Failed parsing user type');
+		}
+
+		const userType = userDataFirebaseDB.type.toLowerCase() as User['type'];
+		return new User(userId, userDataFirebaseDB.courseId, userDataFirebaseDB.name, userType);
 	}
 
 	private async getPresignedProfilePictureUrl(env: Env) {

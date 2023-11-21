@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"lint": "tsc && eslint .",
+		"deploy:beta": "wrangler deploy --env beta",
 		"deploy": "wrangler deploy",
 		"start": "wrangler dev --remote"
 	},
