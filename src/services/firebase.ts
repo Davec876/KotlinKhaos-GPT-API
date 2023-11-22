@@ -28,7 +28,7 @@ export async function getDebugUserToken(env: Env) {
 	// Generate debug user token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'ApJ2B0z0XKhb3zdBgqGOa39UiE53',
+		uid: '4a1ZjuZFUNZaCiOpXnSWmU2X9lI2',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
@@ -38,7 +38,7 @@ export async function getDebugInstructorToken(env: Env) {
 	// Generate debug instructor token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'Fi6HesTs3CMyoeJehQvmNpIGIO43',
+		uid: 'a0AyfxlWDjWyNMSnHz3Rkmcmc8H3',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
