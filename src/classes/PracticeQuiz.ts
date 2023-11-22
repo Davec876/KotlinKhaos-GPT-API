@@ -82,7 +82,7 @@ export default class PracticeQuiz {
 		if (this.isFinished()) {
 			// Validate finalScore
 			const parsedFinalScore = parseFinalScore(this.getLatestContent());
-			if (!parsedFinalScore) {
+			if (parsedFinalScore === null) {
 				throw new KotlinKhaosAPIError('Error parsing final score for practiceQuiz', 500);
 			}
 			return { score: parsedFinalScore };
@@ -232,7 +232,7 @@ export default class PracticeQuiz {
 
 		// Validate finalScore
 		const parsedFinalScore = parseFinalScore(finalScore.content);
-		if (!parsedFinalScore) {
+		if (parsedFinalScore === null) {
 			throw new KotlinKhaosAPIError('Error parsing final score for practiceQuiz', 500);
 		}
 

@@ -209,7 +209,7 @@ export default class QuizAttempt {
 		}
 		// Validate finalScore
 		const parsedFinalScore = parseFinalScore(scoreMessage.content);
-		if (!parsedFinalScore) {
+		if (parsedFinalScore === null) {
 			throw new KotlinKhaosAPIError('Error parsing final score for quizAttempt', 500);
 		}
 
