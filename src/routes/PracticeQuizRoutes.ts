@@ -26,7 +26,7 @@ export class CreatePracticeQuizRoute extends OpenAPIRoute {
 					problem: Str,
 					practiceQuizId: Str,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'400': {
 				schema: {
@@ -67,7 +67,7 @@ export class GetPracticeQuizRoute extends OpenAPIRoute {
 					message: Str,
 					score: Str,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -97,7 +97,7 @@ export class GivePracticeQuizFeedbackRoute extends OpenAPIRoute {
 				schema: {
 					feedback: Str,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -130,7 +130,7 @@ export class ContinuePracticeQuizRoute extends OpenAPIRoute {
 					problem: Str,
 					score: Str,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},

@@ -149,14 +149,16 @@ export default class Quiz {
 		const usersAttempt = this.getFinishedUserAttempts().get(user.getId());
 		return usersAttempt;
 	}
-	public getQuizViewForStudent(user: User) {
+	public async getQuizViewForStudent(env: Env, user: User) {
 		if (!this.checkIfUserIsStudent(user)) {
 			throw new KotlinKhaosAPIError('Only course members can view this quiz', 403);
 		}
 		const usersAttempt = this.getFinishedUserAttempts().get(user.getId()) ?? null;
+		const authorAvatarHash = await User.getAvatarHash(env, this.getAuthorId());
 		return {
 			id: this.getId(),
 			authorId: this.getAuthorId(),
+			authorAvatarHash: authorAvatarHash,
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),
@@ -175,12 +177,15 @@ export default class Quiz {
 			const user = await User.getUser(env, userId);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(finishedUserAttempts.get(userId) as any).name = user.getName();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(finishedUserAttempts.get(userId) as any).studentAvatarHash = user.getAvatarHash;
 		}
 
 		const finishedUserAttemptsWithNames = Object.fromEntries(finishedUserAttempts.entries());
 		return {
 			id: this.getId(),
 			authorId: this.getAuthorId(),
+			authorAvatarHash: user.getAvatarHash(),
 			name: this.getName(),
 			started: this.isStarted(),
 			finished: this.isFinished(),

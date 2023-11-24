@@ -42,7 +42,7 @@ import {
 	GetCourseQuizsStudentRoute,
 	GetCourseWeeklyQuizsSummaryForStudentRoute,
 } from './routes/CourseRoutes';
-import { GetUploadPresignedUrlForUserProfilePicture } from './routes/UserRoutes';
+import { GetUserProfilePictureHash, GetUploadPresignedUrlForUserProfilePicture } from './routes/UserRoutes';
 import { authRoute } from './routes/AuthRoute';
 import type User from './classes/User';
 export interface Env {
@@ -57,6 +57,7 @@ export interface Env {
 	QUIZS: KVNamespace;
 	QUIZ_ATTEMPTS: KVNamespace;
 	PRACTICE_QUIZ_CONVERSATIONS: KVNamespace;
+	USER_R2_AVATAR_HASHES: KVNamespace;
 }
 
 const { preflight, corsify } = createCors();
@@ -147,6 +148,9 @@ router
 
 	// GET weekly course quizs summary for student
 	.get('/student/course/quizs/weekly-summary', GetCourseWeeklyQuizsSummaryForStudentRoute)
+
+	// GET retrieve profile picture hash for user
+	.get('/user/profile-picture', GetUserProfilePictureHash)
 
 	// GET retrieve a s3 presigned upload url to upload a profile picture for the user
 	.get('/user/profile-picture/upload', GetUploadPresignedUrlForUserProfilePicture)

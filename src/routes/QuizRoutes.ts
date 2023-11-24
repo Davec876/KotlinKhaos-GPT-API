@@ -28,9 +28,9 @@ export class CreateQuizInstructorRoute extends OpenAPIRoute {
 			'200': {
 				schema: {
 					quizId: Str,
-					firstQuestion: Str
+					firstQuestion: Str,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 		},
 	};
@@ -59,7 +59,7 @@ export class NextQuizQuestionInstructorRoute extends OpenAPIRoute {
 				schema: {
 					question: Str,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -90,7 +90,7 @@ export class EditQuizInstructorRoute extends OpenAPIRoute {
 				schema: {
 					success: Bool,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -122,7 +122,7 @@ export class StartQuizInstructorRoute extends OpenAPIRoute {
 				schema: {
 					success: Bool,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -150,7 +150,7 @@ export class FinishQuizInstructorRoute extends OpenAPIRoute {
 				schema: {
 					success: Bool,
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -178,6 +178,8 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 				schema: {
 					quiz: {
 						id: Str,
+						authorId: Str,
+						authorAvatarHash: Str,
 						name: Str,
 						started: Bool,
 						finished: Bool,
@@ -189,11 +191,12 @@ export class GetQuizInstructorRoute extends OpenAPIRoute {
 								score: Num,
 								submittedOn: Date,
 								name: Str,
+								studentAvatarHash: Str,
 							},
 						],
 					},
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -220,6 +223,8 @@ export class GetQuizStudentRoute extends OpenAPIRoute {
 				schema: {
 					quiz: {
 						id: Str,
+						authorId: Str,
+						authorAvatarHash: Str,
 						name: Str,
 						started: Bool,
 						finished: Bool,
@@ -231,7 +236,7 @@ export class GetQuizStudentRoute extends OpenAPIRoute {
 						},
 					},
 				},
-				description: 'Successfull response',
+				description: 'Successful response',
 			},
 			'404': error404Schema,
 		},
@@ -241,6 +246,6 @@ export class GetQuizStudentRoute extends OpenAPIRoute {
 		const student = env.REQ_USER;
 		const quizId = req.params.quizId;
 		const quiz = await Quiz.getQuiz(env, quizId);
-		return { quiz: quiz.getQuizViewForStudent(student) };
+		return { quiz: quiz.getQuizViewForStudent(env, student) };
 	}
 }

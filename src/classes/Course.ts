@@ -149,9 +149,10 @@ export default class Course {
 			quizPromises.push(Quiz.getQuiz(env, quizId));
 		});
 		const quizs = await Promise.all(quizPromises);
-		return quizs.map((quiz) => {
-			return quiz.getQuizViewForStudent(user);
+		const quizsForStudentViewPromises = quizs.map((quiz) => {
+			return quiz.getQuizViewForStudent(env, user);
 		});
+		return Promise.all(quizsForStudentViewPromises);
 	}
 
 	public async getWeeklyQuizsSummaryForCourseStudentView(env: Env, user: User) {
@@ -167,31 +168,36 @@ export default class Course {
 		});
 		const quizs = await Promise.all(quizPromises);
 		const oneWeekAgo = new Date().setDate(new Date().getUTCDate() - 7);
+		const quizsForStudentViewPromises = quizs.map((quiz) => {
+			return quiz.getQuizViewForStudent(env, user);
+		});
+		const quizViews = await Promise.all(quizsForStudentViewPromises);
 
-		return quizs.reduce<Record<string, { averageScore: number; quizs: Array<{ quizAttemptId: string; score: number }> }>>((acc, quiz) => {
-			const { usersAttempt } = quiz.getQuizViewForStudent(user);
+		return quizViews.reduce<Record<string, { averageScore: number; quizs: Array<{ quizAttemptId: string; score: number }> }>>(
+			(acc, { usersAttempt }) => {
+				if (usersAttempt && usersAttempt.submittedOn.getUTCDate() <= oneWeekAgo) {
+					const dayNames = ['sun', 'mon', 'tues', 'wed', 'thurs', 'fri', 'sat'];
+					const dayStr = dayNames[usersAttempt.submittedOn.getUTCDay()];
 
-			if (usersAttempt && usersAttempt.submittedOn.getUTCDate() <= oneWeekAgo) {
-				const dayNames = ['sun', 'mon', 'tues', 'wed', 'thurs', 'fri', 'sat'];
-				const dayStr = dayNames[usersAttempt.submittedOn.getUTCDay()];
+					if (!acc[dayStr]) {
+						acc[dayStr] = {
+							averageScore: 0,
+							quizs: [],
+						};
+					}
 
-				if (!acc[dayStr]) {
-					acc[dayStr] = {
-						averageScore: 0,
-						quizs: [],
-					};
+					acc[dayStr].quizs.push({
+						quizAttemptId: usersAttempt.attemptId,
+						score: usersAttempt.score,
+					});
+
+					// calculate average score
+					const totalScore = acc[dayStr].quizs.reduce((sum, attempt) => sum + attempt.score, 0);
+					acc[dayStr].averageScore = totalScore / acc[dayStr].quizs.length;
 				}
-
-				acc[dayStr].quizs.push({
-					quizAttemptId: usersAttempt.attemptId,
-					score: usersAttempt.score,
-				});
-
-				// calculate average score
-				const totalScore = acc[dayStr].quizs.reduce((sum, attempt) => sum + attempt.score, 0);
-				acc[dayStr].averageScore = totalScore / acc[dayStr].quizs.length;
-			}
-			return acc;
-		}, {});
+				return acc;
+			},
+			{}
+		);
 	}
 }
