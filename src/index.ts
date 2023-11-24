@@ -58,6 +58,7 @@ export interface Env {
 	QUIZ_ATTEMPTS: KVNamespace;
 	PRACTICE_QUIZ_CONVERSATIONS: KVNamespace;
 	USER_R2_AVATAR_HASHES: KVNamespace;
+	PUBLIC_BUCKET: R2Bucket;
 }
 
 const { preflight, corsify } = createCors();

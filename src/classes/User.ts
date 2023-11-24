@@ -87,6 +87,10 @@ export default class User {
 				expiresIn: 3600,
 			}
 		);
+		const oldSha256Hash = await env.USER_R2_AVATAR_HASHES.get(userId);
+		if (oldSha256Hash) {
+			await env.PUBLIC_BUCKET.delete(`kotlin-khaos/profile/picture/${userId}/${oldSha256Hash}`);
+		}
 		await env.USER_R2_AVATAR_HASHES.put(userId, sha256Hash);
 		return url;
 	}

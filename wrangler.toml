@@ -13,6 +13,10 @@ kv_namespaces = [
     { binding = "USER_R2_AVATAR_HASHES", id = "9c728c47a346403a91c887e03c666938", preview_id = "9c728c47a346403a91c887e03c666938" }
 ]
 
+[[r2_buckets]]
+binding = 'PUBLIC_BUCKET'
+bucket_name = 'public'
+
 [env.beta]
 routes = [{ pattern = "beta-kotlin-khaos-api.maximoguk.com", custom_domain = true }]
 

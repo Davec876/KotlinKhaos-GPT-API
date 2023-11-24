@@ -178,7 +178,7 @@ export default class Quiz {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(finishedUserAttempts.get(userId) as any).name = user.getName();
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(finishedUserAttempts.get(userId) as any).studentAvatarHash = user.getAvatarHash;
+			(finishedUserAttempts.get(userId) as any).studentAvatarHash = user.getAvatarHash();
 		}
 
 		const finishedUserAttemptsWithNames = Object.fromEntries(finishedUserAttempts.entries());
