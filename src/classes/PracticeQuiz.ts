@@ -8,6 +8,7 @@ import Course, { type CourseInfoSnapshotForQuiz } from './Course';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type User from './User';
+import type { PracticeQuizKv } from '../types/kv';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 import { parseFinalScore } from '../services/openAi/openAiShared';
 
@@ -128,7 +129,7 @@ export default class PracticeQuiz {
 				state,
 				currentQuestionNumber,
 				history,
-			}),
+			} satisfies PracticeQuizKv),
 			{
 				expirationTtl: 86400,
 			}
@@ -143,7 +144,7 @@ export default class PracticeQuiz {
 	// Load practiceQuiz from kv
 	public static async getQuiz(env: Env, practiceQuizId: string) {
 		try {
-			const res = await env.PRACTICE_QUIZ_CONVERSATIONS.get(practiceQuizId).catch((err) => {
+			const res = await env.PRACTICE_QUIZ_CONVERSATIONS.get<PracticeQuizKv>(practiceQuizId, { type: 'json' }).catch((err) => {
 				console.error(err);
 				throw new KotlinKhaosAPIError('Error loading practiceQuiz state', 500);
 			});
@@ -152,16 +153,15 @@ export default class PracticeQuiz {
 				throw new KotlinKhaosAPIError('No practiceQuiz found by that Id', 404);
 			}
 
-			const parsedRes = JSON.parse(res);
 			return new PracticeQuiz(
 				practiceQuizId,
-				parsedRes.userId,
-				parsedRes.savedUsersCourseInfo,
-				parsedRes.prompt,
-				parsedRes.questionLimit,
-				parsedRes.state,
-				parsedRes.currentQuestionNumber,
-				parsedRes.history
+				res.userId,
+				res.savedUsersCourseInfo,
+				res.prompt,
+				res.questionLimit,
+				res.state,
+				res.currentQuestionNumber,
+				res.history
 			);
 		} catch (err) {
 			if (err instanceof SyntaxError) {
@@ -257,6 +257,6 @@ export default class PracticeQuiz {
 			state: this.getState(),
 			currentQuestionNumber: this.getCurrentQuestionNumber(),
 			history: this.getHistory(),
-		});
+		} satisfies PracticeQuizKv);
 	}
 }

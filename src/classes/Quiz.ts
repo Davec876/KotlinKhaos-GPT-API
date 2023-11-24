@@ -3,10 +3,11 @@ import { createNewQuiz, getNextQuestion } from '../services/openAi/openAiQuiz';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { Env } from '../index';
 import type QuizAttempt from './QuizAttempt';
+import type { QuizKv } from '../types/kv';
 import User from './User';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 
-interface FinishedUserAttempt {
+export interface FinishedUserAttempt {
 	readonly attemptId: QuizAttempt['id'];
 	readonly studentId: User['id'];
 	readonly score: number;
@@ -236,7 +237,7 @@ export default class Quiz {
 				startedAt,
 				finishedAt,
 				questions,
-			}),
+			} satisfies QuizKv),
 			{
 				expirationTtl: 86400,
 			}
@@ -264,7 +265,7 @@ export default class Quiz {
 	// Load quiz from kv
 	public static async getQuiz(env: Env, quizId: string) {
 		try {
-			const res = await env.QUIZS.get(quizId).catch((err) => {
+			const res = await env.QUIZS.get<QuizKv>(quizId, { type: 'json' }).catch((err) => {
 				console.error(err);
 				throw new KotlinKhaosAPIError('Error loading quiz state', 500);
 			});
@@ -273,31 +274,29 @@ export default class Quiz {
 				throw new KotlinKhaosAPIError('No quiz found by that Id', 404);
 			}
 
-			const parsedRes = JSON.parse(res);
-
 			// Convert back to Set and Map
-			const startedAttemptsUserIds: Set<User['id']> = new Set(parsedRes.startedAttemptsUserIds);
-			const finishedUserAttempts: Map<User['id'], FinishedUserAttempt> = new Map(Object.entries(parsedRes.finishedUserAttempts));
+			const startedAttemptsUserIds = new Set(res.startedAttemptsUserIds);
+			const finishedUserAttempts = new Map(Object.entries(res.finishedUserAttempts));
 			// Parse date from map
 			finishedUserAttempts.forEach((userAttempt) => {
 				(userAttempt.submittedOn as Date) = new Date(userAttempt.submittedOn);
 			});
 
 			// Parsed Date
-			const startedAt = parsedRes.startedAt ? new Date(parsedRes.startedAt) : undefined;
-			const finishedAt = parsedRes.finishedAt ? new Date(parsedRes.finishedAt) : undefined;
+			const startedAt = res.startedAt ? new Date(res.startedAt) : undefined;
+			const finishedAt = res.finishedAt ? new Date(res.finishedAt) : undefined;
 
 			return new Quiz(
 				quizId,
-				parsedRes.authorId,
-				parsedRes.courseId,
-				parsedRes.savedAuthorsCourseInfo,
-				parsedRes.prompt,
-				parsedRes.questionLimit,
-				parsedRes.name,
+				res.authorId,
+				res.courseId,
+				res.savedAuthorsCourseInfo,
+				res.prompt,
+				res.questionLimit,
+				res.name,
 				startedAttemptsUserIds,
 				finishedUserAttempts,
-				parsedRes.questions,
+				res.questions,
 				startedAt,
 				finishedAt
 			);
@@ -465,9 +464,9 @@ export default class Quiz {
 			name: this.getName(),
 			startedAttemptsUserIds: [...this.getStartedAttemptsUserIds()],
 			finishedUserAttempts: Object.fromEntries(this.getFinishedUserAttempts().entries()),
-			startedAt: this.getStartedAt(),
-			finishedAt: this.getFinishedAt(),
+			startedAt: this.getStartedAt()?.toISOString(),
+			finishedAt: this.getFinishedAt()?.toISOString(),
 			questions: this.getQuestions(),
-		});
+		} satisfies QuizKv);
 	}
 }

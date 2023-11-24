@@ -2,6 +2,7 @@ import Quiz from './Quiz';
 import type { Env } from '../index';
 import type User from './User';
 import type Course from './Course';
+import type { QuizAttemptKv } from '../types/kv';
 import { giveFinalScoreFromQuizAttempt } from '../services/openAi/openAiQuizAttempt';
 import { KotlinKhaosAPIError } from './errors/KotlinKhaosAPI';
 import { parseFinalScore } from '../services/openAi/openAiShared';
@@ -118,7 +119,7 @@ export default class QuizAttempt {
 				score,
 				userAnswers,
 				submittedOn,
-			})
+			} satisfies QuizAttemptKv)
 		).catch((err) => {
 			console.error(err);
 			throw new KotlinKhaosAPIError('Error creating new quizAttempt', 500);
@@ -139,7 +140,7 @@ export default class QuizAttempt {
 	// Load quizAttempt from kv
 	public static async getQuizAttempt(env: Env, quizAttemptId: string) {
 		try {
-			const res = await env.QUIZ_ATTEMPTS.get(quizAttemptId).catch((err) => {
+			const res = await env.QUIZ_ATTEMPTS.get<QuizAttemptKv>(quizAttemptId, { type: 'json' }).catch((err) => {
 				console.error(err);
 				throw new KotlinKhaosAPIError('Error loading quizAttempt state', 500);
 			});
@@ -148,19 +149,17 @@ export default class QuizAttempt {
 				throw new KotlinKhaosAPIError('No quizAttempt found by that Id', 404);
 			}
 
-			const parsedRes = JSON.parse(res);
-
 			// Parsed Date
-			const submittedOn = parsedRes.submittedOn ? new Date(parsedRes.submittedOn) : undefined;
+			const submittedOn = res.submittedOn ? new Date(res.submittedOn) : undefined;
 
 			return new QuizAttempt(
 				quizAttemptId,
-				parsedRes.quizId,
-				parsedRes.courseId,
-				parsedRes.studentId,
-				parsedRes.quizQuestions,
-				parsedRes.score,
-				parsedRes.userAnswers,
+				res.quizId,
+				res.courseId,
+				res.studentId,
+				res.quizQuestions,
+				res.score,
+				res.userAnswers,
 				submittedOn
 			);
 		} catch (err) {
@@ -236,7 +235,7 @@ export default class QuizAttempt {
 			quizQuestions: this.getQuizQuestions(),
 			score: this.getScore(),
 			userAnswers: this.getUserAnswers(),
-			submittedOn: this.getSubmittedOn(),
-		});
+			submittedOn: this.getSubmittedOn()?.toISOString(),
+		} satisfies QuizAttemptKv);
 	}
 }
