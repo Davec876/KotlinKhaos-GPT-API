@@ -80,7 +80,7 @@ export default class User {
 			},
 		});
 
-		const url = await getSignedUrl(
+		const uploadUrl = await getSignedUrl(
 			S3,
 			new PutObjectCommand({ Bucket: 'public', Key: `kotlin-khaos/profile/picture/${userId}/${sha256Hash}` }),
 			{
@@ -92,6 +92,6 @@ export default class User {
 			await env.PUBLIC_BUCKET.delete(`kotlin-khaos/profile/picture/${userId}/${oldSha256Hash}`);
 		}
 		await env.USER_R2_AVATAR_HASHES.put(userId, sha256Hash);
-		return url;
+		return { sha256: sha256Hash, uploadUrl };
 	}
 }

@@ -6,6 +6,7 @@ import { getIdToken, getAccessToken, verifyIdToken } from 'web-auth-library/goog
 import firebaseSecret from '../../firebase-secret.json';
 import type { Env } from '../index';
 import type User from '../classes/User';
+import type { DebugEnv } from '../../tests/config';
 
 // Sourced from https://github.com/kriasoft/web-auth-library/blob/main/google/idToken.ts#L249
 export interface FirebaseUserToken {
@@ -24,11 +25,11 @@ export async function verifyToken(token: string, ctx: ExecutionContext): Promise
 	});
 }
 
-export async function getDebugUserToken(env: Env) {
+export async function getDebugUserToken(env: Env | DebugEnv) {
 	// Generate debug user token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: '4a1ZjuZFUNZaCiOpXnSWmU2X9lI2',
+		uid: '3QnuKVaGnVY6pSQ8zmB8zXIZOLG2',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;
@@ -38,7 +39,7 @@ export async function getDebugInstructorToken(env: Env) {
 	// Generate debug instructor token if no token supplied and in debug mode
 	const tokenRes = await getIdToken({
 		credentials: JSON.stringify(firebaseSecret),
-		uid: 'a0AyfxlWDjWyNMSnHz3Rkmcmc8H3',
+		uid: 'ZhGV0HFZOiUORM5S84uSdc0VJhq1',
 		apiKey: env.FIREBASE_API_KEY,
 	});
 	return tokenRes.idToken as string;

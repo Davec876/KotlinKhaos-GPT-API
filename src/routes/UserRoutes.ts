@@ -38,6 +38,7 @@ export class GetUploadPresignedUrlForUserProfilePicture extends OpenAPIRoute {
 		responses: {
 			'200': {
 				schema: {
+					sha256: Str,
 					uploadUrl: Str,
 				},
 				description: 'Successful response',
@@ -54,7 +55,6 @@ export class GetUploadPresignedUrlForUserProfilePicture extends OpenAPIRoute {
 			return error(400, 'No sha256 hash specified!');
 		}
 
-		const uploadUrl = await User.getPresignedProfilePictureUploadUrl(env, user.getId(), sha256FileHash);
-		return { uploadUrl };
+		return await User.getPresignedProfilePictureUploadUrl(env, user.getId(), sha256FileHash);
 	}
 }

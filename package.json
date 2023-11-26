@@ -6,14 +6,17 @@
 		"lint": "tsc && eslint .",
 		"deploy:beta": "wrangler deploy --env beta",
 		"deploy": "wrangler deploy",
-		"start": "wrangler dev --remote"
+		"start": "wrangler dev --remote",
+		"test": "vitest test"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20231121.0",
 		"@typescript-eslint/eslint-plugin": "^6.12.0",
 		"@typescript-eslint/parser": "^6.12.0",
+		"dotenv": "^16.3.1",
 		"eslint": "^8.54.0",
 		"typescript": "^5.3.2",
+		"vitest": "^0.34.6",
 		"wrangler": "^3.16.0"
 	},
 	"dependencies": {
